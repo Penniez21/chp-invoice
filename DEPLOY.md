@@ -5,7 +5,7 @@
 | ส่วน | บริการ | ทำไมเลือกตัวนี้ |
 |------|--------|-----------------|
 | เว็บ (หน้าบ้าน + หลังบ้านรวมกัน) | [Koyeb](https://www.koyeb.com) Free | 1 service ฟรีถาวร · **ไม่ต้องใช้บัตร** · ไม่หลับเมื่อไม่มีคนใช้ |
-| ฐานข้อมูล | [Aiven for MySQL](https://aiven.io/free-mysql-database) Free | MySQL จริง ฟรีถาวร ไม่ต้องใช้บัตร → ใช้ Flyway เดิมได้เลย ไม่ต้องแก้ SQL |
+| ฐานข้อมูล | [Neon](https://neon.com) Free (PostgreSQL) | ฟรีถาวร ไม่ต้องใช้บัตร 0.5GB · 100 CU-hours/เดือน |
 | Pipeline | GitHub Actions | ฟรีไม่จำกัดสำหรับ public repo |
 | ที่เก็บ image | GitHub Container Registry | ฟรีสำหรับ public repo |
 
@@ -43,22 +43,37 @@ git push -u origin main
 
 ---
 
-## ขั้นที่ 2 — สร้างฐานข้อมูล MySQL ที่ Aiven
+## ขั้นที่ 2 — สร้างฐานข้อมูล PostgreSQL ที่ Neon
 
-1. สมัครที่ https://aiven.io (ใช้บัญชี GitHub ล็อกอินได้ ไม่ต้องใส่บัตร)
-2. **Create service → MySQL** เลือกแพลน **Free** แล้วเลือก region ที่ใกล้ไทยที่สุด
-3. รอสถานะเปลี่ยนเป็น *Running* (ประมาณ 2–5 นาที)
-4. เข้าไปที่แท็บ **Overview** จดค่าต่อไปนี้ไว้
+1. สมัครที่ https://neon.com (ใช้บัญชี GitHub ล็อกอินได้ ไม่ต้องใส่บัตร)
+2. **Create project** ตั้งชื่อ `chp-invoice` เลือก region ที่ใกล้ไทยที่สุด (เช่น Singapore)
+3. หน้าถัดมาจะโชว์ **Connection string** หน้าตาแบบนี้
 
-   | ค่าที่เห็นบน Aiven | เอาไปใส่เป็น |
+   ```
+   postgresql://<user>:<password>@ep-xxxx-xxxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+   ```
+
+4. แยกค่าออกมาใส่ตามนี้
+
+   | ส่วนใน connection string | เอาไปใส่เป็น |
    |---|---|
-   | Host | `DB_HOST` |
-   | Port | `DB_PORT` |
-   | User | `DB_USER` |
-   | Password | `DB_PASSWORD` |
-   | Database name (`defaultdb`) | `DB_NAME` |
+   | หลัง `@` ถึงก่อน `/` | `DB_HOST` |
+   | (Neon ใช้ 5432 เสมอ) | `DB_PORT` = `5432` |
+   | หลัง `/` ก่อน `?` (ปกติ `neondb`) | `DB_NAME` |
+   | หลัง `postgresql://` ก่อน `:` | `DB_USER` |
+   | ระหว่าง `:` กับ `@` | `DB_PASSWORD` |
 
 > ตารางทั้งหมดถูกสร้างโดย Flyway อัตโนมัติตอนแอปสตาร์ทครั้งแรก ไม่ต้องรัน SQL เอง
+
+### อยากใช้ MySQL แทนก็ได้
+
+โปรเจกต์รองรับทั้งสองฐานข้อมูล — migration แยกโฟลเดอร์ไว้ที่ `db/migration/mysql` และ `db/migration/postgresql`
+Flyway เลือกให้เองตามชนิดฐานข้อมูล ถ้าจะใช้ MySQL แค่ตั้ง env เพิ่ม 2 ตัว **ไม่ต้องแก้โค้ด**
+
+```
+DB_URL    = jdbc:mysql://<host>:<port>/<db>?useUnicode=true&characterEncoding=UTF-8&sslMode=REQUIRED
+DB_DRIVER = com.mysql.cj.jdbc.Driver
+```
 
 ---
 
@@ -95,11 +110,11 @@ openssl rand -base64 48
 
    ```
    SPRING_PROFILES_ACTIVE = prod
-   DB_HOST         = <host จาก Aiven>
-   DB_PORT         = <port จาก Aiven>
-   DB_NAME         = defaultdb
-   DB_USER         = avnadmin
-   DB_PASSWORD     = <password จาก Aiven>
+   DB_HOST         = <host จาก Neon เช่น ep-xxxx.ap-southeast-1.aws.neon.tech>
+   DB_PORT         = 5432
+   DB_NAME         = neondb
+   DB_USER         = <user จาก Neon>
+   DB_PASSWORD     = <password จาก Neon>
    JWT_SECRET      = <ค่าที่สุ่มไว้>
    ADMIN_PASSWORD  = <รหัสผู้ดูแลที่ตั้งเอง>
    ```
@@ -147,8 +162,10 @@ curl https://<url-ของคุณ>/api/health
 
 - **RAM 512MB** — ตั้ง `-XX:MaxRAMPercentage=70` และใช้ SerialGC ไว้แล้วใน Dockerfile พอสำหรับผู้ใช้ไม่กี่คน ถ้าคนใช้เยอะขึ้นต้องอัปแพลน
 - **0.1 vCPU** — request แรกหลังปลุกเครื่องอาจช้าสัก 2–3 วินาที
-- **ฐานข้อมูลฟรี 1GB** — ใบแจ้งหนี้ระดับหลักหมื่นใบยังสบาย
-- Aiven free tier เป็น single node **ไม่มี replica** เหมาะกับงานจริงขนาดเล็ก ไม่เหมาะกับงานที่ห้ามล่มเด็ดขาด
+- **ฐานข้อมูลฟรี 0.5GB** — ใบแจ้งหนี้ระดับหลักหมื่นใบยังสบาย
+- **Neon หลับหลังไม่มีคนใช้ 5 นาที** — คำขอแรกหลังปลุกจะช้ากว่าปกติเล็กน้อย แล้วกลับมาเร็วเหมือนเดิม
+- **100 CU-hours/เดือน** — นับเฉพาะตอนฐานข้อมูลตื่น ระบบที่มีคนใช้ไม่กี่คนใช้ไม่ถึงเพดาน ถ้าเกินจะหยุดจนถึงรอบบิลถัดไป
+- Neon free เป็น single node **ไม่มี replica** เหมาะกับงานจริงขนาดเล็ก ไม่เหมาะกับงานที่ห้ามล่มเด็ดขาด
 
 ---
 

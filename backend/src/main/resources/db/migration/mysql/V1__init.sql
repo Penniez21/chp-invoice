@@ -57,6 +57,11 @@ CREATE TABLE invoice_items (
 CREATE INDEX idx_items_invoice ON invoice_items (invoice_id);
 CREATE INDEX idx_invoices_no    ON invoices (invoice_no);
 
--- ผู้ใช้เริ่มต้น: admin / admin123  (BCrypt) — เปลี่ยนรหัสหลังใช้งานจริง
-INSERT INTO users (username, password_hash, role)
-VALUES ('admin', '$2b$10$dktbaaiiKCv4yajjhlaxL.Rw6mw5tqJbfBnoVNptMqMxZ6KM7GbJK', 'ADMIN');
+-- ไม่ seed ผู้ใช้ที่นี่โดยตั้งใจ
+--
+-- ของเดิมเคย INSERT admin พร้อม BCrypt ของ 'admin123' ไว้ ผลคือ DataSeeder เห็นว่ามี
+-- ผู้ใช้ชื่อนี้แล้วจึงข้ามการสร้างจาก ADMIN_PASSWORD ทำให้ค่าที่ตั้งใน env ไม่มีผล
+-- และระบบที่ deploy จริงจะเข้าได้ด้วย admin123 ซึ่งอ่านได้จาก repo สาธารณะ
+--
+-- ตอนนี้ให้ DataSeeder เป็นผู้สร้างผู้ใช้แทน โดยใช้รหัสจาก ADMIN_PASSWORD
+-- (โปรไฟล์ prod บังคับให้ตั้งค่านี้ ไม่ตั้งแล้วแอปจะไม่สตาร์ท)

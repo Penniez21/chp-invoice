@@ -44,6 +44,13 @@
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- PostgreSQL — ใช้กับ Neon บน production (เก็บ driver ของ MySQL ไว้ด้วย
+             จะได้สลับกลับไปใช้ MySQL ได้โดยแก้แค่ค่า env ไม่ต้องแตะโค้ด) -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         <!-- H2 in-memory DB สำหรับโปรไฟล์ dev (รัน/ทดสอบโดยไม่ต้องมี MySQL) -->
         <dependency>
             <groupId>com.h2database</groupId>
@@ -59,6 +66,10 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-mysql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
         <!-- Security + JWT -->
