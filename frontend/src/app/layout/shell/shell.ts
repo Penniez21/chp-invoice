@@ -33,6 +33,7 @@ export class Shell {
     { label: 'สร้างใบแจ้งหนี้', icon: '✎', link: '/invoices/new' },
     { label: 'บัญชีธนาคาร', icon: '𝗕', link: '/settings/banks' },
     { label: 'ผู้รับ', icon: '☺', link: '/settings/recipients' },
+    { label: 'บัญชีผู้ใช้', icon: '⚙', link: '/settings/account' },
   ];
 
   protected readonly themes: { mode: ThemeMode; icon: string; title: string }[] = [

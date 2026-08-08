@@ -42,6 +42,14 @@ export class AuthService {
     return this._token();
   }
 
+  /**
+   * รับโทเคนชุดใหม่หลังเปลี่ยนรหัสผ่าน/ชื่อผู้ใช้
+   * จำเป็นเพราะ JWT ใช้ username เป็น subject — เปลี่ยนชื่อแล้วโทเคนเดิมใช้ไม่ได้
+   */
+  applySession(res: LoginResponse): void {
+    this.setSession(res);
+  }
+
   private setSession(res: LoginResponse): void {
     localStorage.setItem(TOKEN_KEY, res.token);
     localStorage.setItem(USER_KEY, res.username);

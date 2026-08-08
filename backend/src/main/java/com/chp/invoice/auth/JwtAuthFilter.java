@@ -8,6 +8,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -50,13 +51,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            if (jwtService.isTokenValid(token, userDetails.getUsername())) {
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+            try {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                if (jwtService.isTokenValid(token, userDetails.getUsername())) {
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            } catch (UsernameNotFoundException e) {
+                // ผู้ใช้ใน token ไม่มีอยู่แล้ว (เช่นเพิ่งเปลี่ยนชื่อผู้ใช้ หรือถูกลบ)
+                // ต้องถือว่า "ยังไม่ได้ยืนยันตัวตน" ให้ตอบ 401 ไม่ใช่ปล่อยให้ระเบิดเป็น 500
+                // ไม่งั้น frontend จะไม่เด้งไปหน้า login และผู้ใช้จะเจอแอปค้างแทน
             }
         }
 

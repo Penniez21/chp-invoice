@@ -1,0 +1,100 @@
+<div class="mx-auto max-w-2xl">
+
+  <div class="page-head mb-6">
+    <h1 class="page-head__title">บัญชีผู้ใช้</h1>
+    <p class="page-head__sub">
+      กำลังใช้งานในชื่อ <span class="font-semibold text-ink">{{ auth.username() }}</span>
+      — ทุกการเปลี่ยนแปลงต้องยืนยันด้วยรหัสผ่านปัจจุบัน
+    </p>
+  </div>
+
+  <!-- ===== เปลี่ยนรหัสผ่าน ===== -->
+  <section class="card animate-in mb-6 p-6">
+    <div class="mb-4 flex items-center gap-2">
+      <span class="grid h-8 w-8 place-items-center rounded-lg bg-primary-soft text-primary-dark">🔑</span>
+      <h2 class="text-base font-semibold text-ink">เปลี่ยนรหัสผ่าน</h2>
+    </div>
+
+    <form [formGroup]="passwordForm" (ngSubmit)="submitPassword()" novalidate class="space-y-4">
+      <label class="block">
+        <span class="lbl">รหัสผ่านปัจจุบัน <span class="text-red-500">*</span></span>
+        <input [type]="showPassword() ? 'text' : 'password'" formControlName="currentPassword"
+               class="inp" autocomplete="current-password" />
+        @if (passwordForm.controls.currentPassword.touched && passwordForm.controls.currentPassword.invalid) {
+          <span class="err">กรุณากรอกรหัสผ่านปัจจุบัน</span>
+        }
+      </label>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label class="block">
+          <span class="lbl">รหัสผ่านใหม่ <span class="text-red-500">*</span></span>
+          <input [type]="showPassword() ? 'text' : 'password'" formControlName="newPassword"
+                 class="inp" autocomplete="new-password" />
+          @if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.invalid) {
+            <span class="err">ต้องยาวอย่างน้อย 8 ตัวอักษร</span>
+          }
+        </label>
+
+        <label class="block">
+          <span class="lbl">ยืนยันรหัสผ่านใหม่ <span class="text-red-500">*</span></span>
+          <input [type]="showPassword() ? 'text' : 'password'" formControlName="confirmPassword"
+                 class="inp" autocomplete="new-password" />
+          @if (passwordForm.controls.confirmPassword.touched && passwordForm.hasError('mismatch')) {
+            <span class="err">รหัสผ่านทั้งสองช่องไม่ตรงกัน</span>
+          }
+        </label>
+      </div>
+
+      <label class="flex items-center gap-2 text-sm text-ink-soft">
+        <input type="checkbox" class="h-4 w-4 rounded border-line"
+               [checked]="showPassword()" (change)="showPassword.set($any($event.target).checked)" />
+        แสดงรหัสผ่าน
+      </label>
+
+      <div class="flex justify-end">
+        <button type="submit" class="btn btn--primary" [disabled]="savingPassword()">
+          @if (savingPassword()) { <span class="spinner spinner--sm" style="--color-primary:#fff"></span> กำลังบันทึก… }
+          @else { เปลี่ยนรหัสผ่าน }
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ===== เปลี่ยนชื่อผู้ใช้ ===== -->
+  <section class="card animate-in p-6">
+    <div class="mb-4 flex items-center gap-2">
+      <span class="grid h-8 w-8 place-items-center rounded-lg bg-secondary-soft text-secondary-dark">👤</span>
+      <h2 class="text-base font-semibold text-ink">เปลี่ยนชื่อผู้ใช้</h2>
+    </div>
+
+    <form [formGroup]="usernameForm" (ngSubmit)="submitUsername()" novalidate class="space-y-4">
+      <label class="block">
+        <span class="lbl">ชื่อผู้ใช้ใหม่ <span class="text-red-500">*</span></span>
+        <input formControlName="newUsername" class="inp" autocomplete="username"
+               placeholder="a-z A-Z 0-9 และ . _ - เท่านั้น" />
+        @if (usernameForm.controls.newUsername.touched && usernameForm.controls.newUsername.invalid) {
+          @if (usernameForm.controls.newUsername.hasError('pattern')) {
+            <span class="err">ใช้ได้เฉพาะ a-z A-Z 0-9 และ . _ -</span>
+          } @else {
+            <span class="err">ชื่อผู้ใช้ต้องยาว 3–50 ตัวอักษร</span>
+          }
+        }
+      </label>
+
+      <label class="block">
+        <span class="lbl">รหัสผ่านปัจจุบัน <span class="text-red-500">*</span></span>
+        <input type="password" formControlName="currentPassword" class="inp" autocomplete="current-password" />
+        @if (usernameForm.controls.currentPassword.touched && usernameForm.controls.currentPassword.invalid) {
+          <span class="err">กรุณากรอกรหัสผ่านปัจจุบัน</span>
+        }
+      </label>
+
+      <div class="flex justify-end">
+        <button type="submit" class="btn btn--primary" [disabled]="savingUsername()">
+          @if (savingUsername()) { <span class="spinner spinner--sm" style="--color-primary:#fff"></span> กำลังบันทึก… }
+          @else { เปลี่ยนชื่อผู้ใช้ }
+        </button>
+      </div>
+    </form>
+  </section>
+</div>

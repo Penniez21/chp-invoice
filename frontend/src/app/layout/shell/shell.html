@@ -92,7 +92,11 @@
                 <p class="text-xs text-ink-soft">เข้าสู่ระบบเป็น</p>
                 <p class="truncate text-sm font-semibold text-ink">{{ username() }}</p>
               </div>
-              <button (click)="logout()" class="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-ink transition hover:bg-primary-soft">
+              <a routerLink="/settings/account" (click)="userMenuOpen.set(false)"
+                 class="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-ink transition hover:bg-primary-soft">
+                <span>⚙</span> บัญชีผู้ใช้
+              </a>
+              <button (click)="logout()" class="flex w-full items-center gap-2 border-t border-line px-4 py-2.5 text-sm text-ink transition hover:bg-primary-soft">
                 <span>⇥</span> ออกจากระบบ
               </button>
             </div>

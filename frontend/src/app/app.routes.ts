@@ -43,6 +43,13 @@ export const routes: Routes = [
             (m) => m.RecipientSettings
           ),
       },
+      {
+        path: 'settings/account',
+        loadComponent: () =>
+          import('./features/settings/account-settings/account-settings').then(
+            (m) => m.AccountSettings
+          ),
+      },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },
