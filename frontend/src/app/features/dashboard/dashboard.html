@@ -1,0 +1,118 @@
+<div class="mx-auto max-w-6xl">
+
+  <!-- header -->
+  <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div class="page-head">
+      <h1 class="page-head__title">แดชบอร์ด</h1>
+      <p class="page-head__sub">ภาพรวมและรายการใบแจ้งหนี้ทั้งหมด</p>
+    </div>
+    <a routerLink="/invoices/new" class="btn btn--primary">＋ สร้างใบแจ้งหนี้</a>
+  </div>
+
+  <!-- stat cards -->
+  <div class="mb-6 grid gap-4 sm:grid-cols-3">
+    <div class="card animate-in flex items-center gap-4 p-5">
+      <span class="grid h-12 w-12 place-items-center rounded-xl bg-primary-soft text-2xl">🧾</span>
+      <div>
+        <p class="text-xs text-ink-soft">ใบแจ้งหนี้ทั้งหมด</p>
+        <p class="text-2xl font-bold text-ink">{{ invoices().length }}</p>
+      </div>
+    </div>
+    <div class="card animate-in flex items-center gap-4 p-5">
+      <span class="grid h-12 w-12 place-items-center rounded-xl bg-secondary-soft text-2xl">💰</span>
+      <div>
+        <p class="text-xs text-ink-soft">ยอดชำระสุทธิรวม</p>
+        <p class="text-2xl font-bold text-ink">฿ {{ money(totalNet()) }}</p>
+      </div>
+    </div>
+    <a routerLink="/invoices/new" class="card animate-in group flex items-center gap-4 p-5 transition hover:border-primary">
+      <span class="grid h-12 w-12 place-items-center rounded-xl text-2xl text-white transition-transform group-hover:scale-110" style="background: var(--grad-brand)">＋</span>
+      <div>
+        <p class="text-sm font-semibold text-ink">สร้างใบแจ้งหนี้ใหม่</p>
+        <p class="text-xs text-ink-soft">เริ่มกรอกข้อมูล</p>
+      </div>
+    </a>
+  </div>
+
+  <!-- table card -->
+  <section class="card animate-in overflow-visible">
+    <!-- toolbar: autocomplete search -->
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line p-4">
+      <h2 class="text-base font-semibold text-ink">รายการใบแจ้งหนี้</h2>
+      <div class="relative w-full sm:w-80">
+        <span class="pointer-events-none absolute inset-y-0 left-0 grid w-10 place-items-center text-ink-soft">🔍</span>
+        <input
+          [value]="query()"
+          (input)="onQuery($any($event.target).value)"
+          (focus)="showSuggest.set(!!query())"
+          (blur)="showSuggest.set(false)"
+          placeholder="ค้นหาเลขที่ / ชื่อผู้รับ…"
+          class="inp pl-10" />
+        <!-- autocomplete dropdown -->
+        @if (showSuggest() && suggestions().length) {
+          <div class="animate-in absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-line bg-elevated shadow-[0_16px_48px_rgba(0,0,0,.14)]">
+            @for (s of suggestions(); track s.id) {
+              <button type="button" (mousedown)="pick(s)"
+                      class="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-primary-soft">
+                <span class="flex items-center gap-2">
+                  <span class="chip">{{ s.invoiceNo }}</span>
+                  <span class="truncate text-ink">{{ s.recipientName }}</span>
+                </span>
+                <span class="whitespace-nowrap text-xs text-ink-soft">฿ {{ money(s.netTotal) }}</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- table body -->
+    @if (loading()) {
+      <app-spinner label="กำลังโหลดรายการ…" />
+    } @else if (filtered().length === 0) {
+      <div class="flex flex-col items-center gap-3 py-16 text-center">
+        <span class="text-5xl opacity-40">📭</span>
+        <p class="text-ink-soft">{{ query() ? 'ไม่พบใบแจ้งหนี้ที่ค้นหา' : 'ยังไม่มีใบแจ้งหนี้' }}</p>
+        @if (!query()) { <a routerLink="/invoices/new" class="btn btn--primary">＋ สร้างใบแรก</a> }
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[720px] text-sm">
+          <thead>
+            <tr class="border-b border-line text-left text-ink-soft">
+              <th class="px-4 py-3 font-medium">เลขที่</th>
+              <th class="px-4 py-3 font-medium">ผู้รับ</th>
+              <th class="px-4 py-3 font-medium">วันที่</th>
+              <th class="px-4 py-3 text-right font-medium">ยอดสุทธิ</th>
+              <th class="px-4 py-3 text-center font-medium">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (inv of pager.items(); track inv.id) {
+              <tr class="group cursor-pointer border-b border-line/60 transition hover:bg-primary-soft/40"
+                  [routerLink]="['/invoices', inv.id, 'edit']"
+                  [class.opacity-40]="deletingId() === inv.id">
+                <td class="px-4 py-3"><span class="chip">{{ inv.invoiceNo }}</span></td>
+                <td class="max-w-[260px] truncate px-4 py-3 font-medium text-ink">{{ inv.recipientName }}</td>
+                <td class="px-4 py-3 text-ink-soft">{{ formatDate(inv.issueDate) }}</td>
+                <td class="px-4 py-3 text-right font-semibold text-ink">฿ {{ money(inv.netTotal) }}</td>
+                <td class="px-4 py-3">
+                  <div class="flex items-center justify-center gap-1" (click)="$event.stopPropagation()">
+                    <a [routerLink]="['/invoices', inv.id, 'report']" title="ดูรายงาน"
+                       class="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition hover:bg-primary-soft hover:text-primary-dark">📄</a>
+                    <a [routerLink]="['/invoices', inv.id, 'edit']" title="แก้ไข"
+                       class="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition hover:bg-primary-soft hover:text-primary-dark">✎</a>
+                    <button (click)="remove(inv, $event)" title="ลบ" [disabled]="deletingId() === inv.id"
+                            class="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition hover:bg-red-50 hover:text-red-600">🗑</button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-pagination [p]="pager" />
+    }
+  </section>
+</div>

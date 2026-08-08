@@ -1,0 +1,23 @@
+# โปรไฟล์ dev: H2 in-memory (รัน/ทดสอบโดยไม่ต้องมี MySQL)
+# เปิดใช้ด้วย: mvn spring-boot:run -Dspring-boot.run.profiles=h2
+spring:
+  datasource:
+    url: jdbc:h2:mem:chp_invoice;DB_CLOSE_DELAY=-1;MODE=MySQL
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop        # Hibernate สร้าง schema จาก entity (ไม่ใช้ Flyway)
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+  flyway:
+    enabled: false                 # ปิด Flyway ในโปรไฟล์นี้ (SQL เป็น syntax MySQL)
+
+  h2:
+    console:
+      enabled: true                # เปิด H2 console ที่ /h2-console
+      path: /h2-console

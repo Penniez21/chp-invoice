@@ -1,0 +1,36 @@
+<div class="space-y-3">
+  <label class="block">
+    <span class="lbl">ที่อยู่ (บ้านเลขที่ / หมู่ / ซอย / ถนน)</span>
+    <input class="inp" [value]="detail()" [disabled]="isDisabled()"
+           (input)="onDetail($any($event.target).value)" />
+  </label>
+
+  <div class="grid gap-3 sm:grid-cols-2">
+    <div class="block">
+      <span class="lbl">จังหวัด</span>
+      <app-combobox [options]="provinceOptions()" [value]="province()" [disabled]="isDisabled()"
+                    placeholder="พิมพ์ค้นหาจังหวัด…" emptyText="ไม่พบจังหวัดที่ค้นหา"
+                    (valueChange)="onProvince($event)" />
+    </div>
+
+    <div class="block">
+      <span class="lbl">อำเภอ / เขต</span>
+      <app-combobox [options]="amphureOptions()" [value]="amphure()" [disabled]="isDisabled() || !province()"
+                    placeholder="พิมพ์ค้นหาอำเภอ…" emptyText="ไม่พบอำเภอที่ค้นหา"
+                    (valueChange)="onAmphure($event)" />
+    </div>
+
+    <div class="block">
+      <span class="lbl">ตำบล / แขวง</span>
+      <app-combobox [options]="tambonOptions()" [value]="tambon()" [disabled]="isDisabled() || !amphure()"
+                    placeholder="พิมพ์ค้นหาตำบล…" emptyText="ไม่พบตำบลที่ค้นหา"
+                    (valueChange)="onTambon($event)" />
+    </div>
+
+    <label class="block">
+      <span class="lbl">รหัสไปรษณีย์</span>
+      <input class="inp inp--readonly" [value]="zip()" readonly
+             placeholder="เติมอัตโนมัติเมื่อเลือกตำบล" />
+    </label>
+  </div>
+</div>

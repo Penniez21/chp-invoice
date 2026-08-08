@@ -1,0 +1,43 @@
+<div class="relative">
+  <input #field
+         class="inp combo__field"
+         type="text"
+         role="combobox"
+         autocomplete="off"
+         [attr.aria-expanded]="open()"
+         [disabled]="isDisabled()"
+         [placeholder]="placeholder()"
+         [value]="open() ? query() : selectedLabel()"
+         (focus)="openList()"
+         (click)="openList()"
+         (input)="onInput($any($event.target).value)"
+         (keydown)="onKey($event)" />
+
+  <!-- ปุ่มล้างค่า / ลูกศร -->
+  <div class="pointer-events-none absolute inset-y-0 right-2 flex items-center gap-1">
+    @if (current() && !isDisabled()) {
+      <button type="button" class="combo__clear pointer-events-auto" title="ล้างค่า" (click)="clear($event)">✕</button>
+    }
+    <span class="combo__caret" [class.combo__caret--open]="open()">▾</span>
+  </div>
+
+  <!-- popover="manual" — คุมการเปิด/ปิดเอง เพราะ light-dismiss ของ auto จะปิดทันทีที่คลิกช่องกรอก -->
+  <div #pop popover="manual" class="combo__list">
+    @if (filtered().length) {
+      @for (o of filtered(); track o.value; let i = $index) {
+        <button type="button" class="combo__opt"
+                [attr.data-active]="i === activeIndex()"
+                [class.combo__opt--active]="i === activeIndex()"
+                [class.combo__opt--selected]="o.value === current()"
+                (mouseenter)="activeIndex.set(i)"
+                (click)="pick(o)">
+          <span class="min-w-0 flex-1 truncate text-left">{{ o.label }}</span>
+          @if (o.hint) { <span class="combo__hint">{{ o.hint }}</span> }
+          @if (o.value === current()) { <span class="combo__check">✓</span> }
+        </button>
+      }
+    } @else {
+      <p class="combo__empty">{{ emptyText() }}</p>
+    }
+  </div>
+</div>

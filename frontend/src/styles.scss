@@ -1,0 +1,1002 @@
+/* ============================================================
+   ฟอนต์ไทย Sarabun (self-host — ใช้ได้ออฟไลน์ + ฝังใน PDF ที่สร้างฝั่ง client ได้)
+   ============================================================ */
+@font-face {
+  font-family: 'Sarabun';
+  src: url('/fonts/Sarabun-Regular.ttf') format('truetype');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Sarabun';
+  src: url('/fonts/Sarabun-Medium.ttf') format('truetype');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Sarabun';
+  src: url('/fonts/Sarabun-SemiBold.ttf') format('truetype');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Sarabun';
+  src: url('/fonts/Sarabun-Bold.ttf') format('truetype');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+
+/* ============================================================
+   Global styles + theme modes (light / soft / dark)
+   สีถูกประกาศเป็น CSS var ใน styles.tailwind.css (@theme) — ที่นี่ override ต่อธีม
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+  --ring: rgba(22, 189, 169, 0.35);
+  --shadow-card: 0 1px 2px rgba(16, 33, 31, 0.04), 0 10px 30px rgba(16, 33, 31, 0.06);
+  --shadow-pop: 0 12px 40px rgba(16, 33, 31, 0.14);
+  --grad-brand: linear-gradient(135deg, #16bda9 0%, #0e9e8e 55%, #0b8f9e 100%);
+  --grad-brand-soft: linear-gradient(135deg, rgba(22,189,169,.16), rgba(217,164,65,.14));
+}
+
+/* โหมด soft — ถนอมสายตา: โทนอุ่นครีม-เซเปีย คอนทราสต์ต่ำ ลดแสงจ้า */
+:root[data-theme="soft"] {
+  color-scheme: light;
+  --color-primary: #2f9788;         /* เทา-เขียวมิ้นหม่น ไม่จ้า */
+  --color-primary-dark: #226e63;
+  --color-primary-soft: #dce7dd;
+  --color-secondary: #c1913b;       /* มัสตาร์ดหม่น */
+  --color-secondary-dark: #9c7429;
+  --color-secondary-soft: #e9ddc0;
+  --color-canvas: #ebe4d3;          /* ครีมอุ่น (กระดาษ) — ถนอมสายตา */
+  --color-surface: #f5efe0;         /* กระดาษอ่อน */
+  --color-elevated: #faf5e9;
+  --color-ink: #403c30;             /* น้ำตาลเข้มอุ่น (ไม่ดำสนิท ลดคอนทราสต์) */
+  --color-ink-soft: #78725d;
+  --color-line: #d8cfb6;
+  --ring: rgba(47, 151, 136, 0.28);
+  --shadow-card: 0 1px 2px rgba(64, 54, 30, 0.04), 0 8px 22px rgba(64, 54, 30, 0.06);
+  --grad-brand: linear-gradient(135deg, #2f9788 0%, #257f72 55%, #1f7a80 100%);
+  --grad-brand-soft: linear-gradient(135deg, rgba(47,151,136,.14), rgba(193,145,59,.13));
+}
+
+/* โหมด dark */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-primary: #24cdb8;
+  --color-primary-dark: #17bda9;
+  --color-primary-soft: #0f302b;
+  --color-secondary: #e4b457;
+  --color-secondary-dark: #c9922f;
+  --color-secondary-soft: #2a2413;
+  --color-canvas: #0b1413;
+  --color-surface: #131f1d;
+  --color-elevated: #1a2624;
+  --color-ink: #e9f1ef;
+  --color-ink-soft: #90a29e;
+  --color-line: #233330;
+  --ring: rgba(36, 205, 184, 0.4);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 34px rgba(0, 0, 0, 0.4);
+  --shadow-pop: 0 16px 48px rgba(0, 0, 0, 0.55);
+  --grad-brand: linear-gradient(135deg, #17bda9 0%, #0e9e8e 50%, #0c7f8c 100%);
+  --grad-brand-soft: linear-gradient(135deg, rgba(36,205,184,.14), rgba(228,180,87,.12));
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; margin: 0; }
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ---------- Scrollbar เข้าธีม ---------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-ink-soft) 35%, transparent) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-ink-soft) 30%, transparent);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--color-ink-soft) 50%, transparent); background-clip: content-box; }
+
+/* ---------- ปุ่ม ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.15rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: transform 0.06s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  &:active { transform: translateY(1px) scale(0.99); }
+  &:disabled { cursor: not-allowed; opacity: 0.55; }
+
+  &--primary {
+    background: var(--grad-brand);
+    color: #fff;
+    box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--color-primary) 70%, transparent);
+    &:hover:not(:disabled) { box-shadow: 0 10px 26px -8px color-mix(in srgb, var(--color-primary) 85%, transparent); }
+  }
+  &--secondary {
+    background: var(--color-secondary);
+    color: #4a3810;
+    &:hover:not(:disabled) { background: var(--color-secondary-dark); color: #fff; }
+  }
+  &--ghost {
+    background: transparent;
+    border-color: var(--color-line);
+    color: var(--color-ink);
+    &:hover:not(:disabled) { background: color-mix(in srgb, var(--color-primary) 10%, transparent); border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-line)); }
+  }
+  /* ปุ่มยืนยันการลบ — ทึบให้เห็นชัดว่าเป็นการกระทำที่ย้อนไม่ได้ (คู่กับ .btn--ghost ที่ยกเลิก) */
+  &--danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #fff;
+    box-shadow: 0 6px 18px -6px color-mix(in srgb, #ef4444 70%, transparent);
+    &:hover:not(:disabled) { box-shadow: 0 10px 26px -8px color-mix(in srgb, #ef4444 85%, transparent); }
+  }
+}
+
+/* ---------- Combobox (dropdown ที่พิมพ์ค้นหาได้) ---------- */
+.combo {
+  &__field {
+    padding-right: 3.2rem; /* เผื่อที่ให้ปุ่มล้างค่า + ลูกศร */
+    cursor: pointer;
+    text-overflow: ellipsis;
+    &:focus { cursor: text; }
+    &:disabled { opacity: 0.55; cursor: not-allowed; }
+  }
+
+  &__caret {
+    font-size: 0.7rem;
+    color: var(--color-ink-soft);
+    transition: transform 0.2s ease, color 0.2s ease;
+    &--open {
+      transform: rotate(180deg);
+      color: var(--color-primary);
+    }
+  }
+
+  &__clear {
+    display: grid;
+    place-items: center;
+    height: 1.25rem;
+    width: 1.25rem;
+    border-radius: 999px;
+    color: var(--color-ink-soft);
+    font-size: 0.65rem;
+    transition: background 0.15s ease, color 0.15s ease;
+    &:hover {
+      background: var(--color-primary-soft);
+      color: var(--color-primary-dark);
+    }
+  }
+
+  /* กล่องรายการ — หน้าตาชุดเดียวกับ ::picker(select) ของ dropdown เดิม */
+  &__list {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    padding: 6px;
+    max-height: 17rem;
+    overflow-y: auto;
+    border: 1px solid var(--color-line);
+    border-radius: 14px;
+    background: var(--color-elevated);
+    box-shadow: var(--shadow-pop);
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--color-ink-soft) 35%, transparent) transparent;
+
+    opacity: 0;
+    transform: translateY(-6px);
+    transition:
+      opacity 0.16s ease,
+      transform 0.16s ease,
+      display 0.16s allow-discrete,
+      overlay 0.16s allow-discrete;
+
+    &:popover-open {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @starting-style {
+      &:popover-open {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
+    }
+  }
+
+  &__opt {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    border-radius: 9px;
+    font-size: 0.875rem;
+    color: var(--color-ink);
+    transition: background 0.12s ease, color 0.12s ease;
+
+    &--active {
+      background: var(--color-primary-soft);
+      color: var(--color-primary-dark);
+    }
+    &--selected { font-weight: 600; }
+  }
+
+  &__hint {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    color: var(--color-ink-soft);
+  }
+  &__check {
+    flex-shrink: 0;
+    margin-inline-start: auto;
+    color: var(--color-primary);
+  }
+  &__empty {
+    padding: 0.9rem 0.6rem;
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--color-ink-soft);
+  }
+}
+
+/* ---------- Navbar ด้านบน ---------- */
+.navbar {
+  /* ห้ามใส่ position ที่นี่ — จะไปทับ utility `sticky` ของ Tailwind บน element เดียวกัน
+     ทำให้ navbar เลื่อนหายตอน scroll (sticky เป็น positioned อยู่แล้ว ::after จึงยึดตำแหน่งได้) */
+
+  /* เส้นคาดไล่สีแบรนด์แทนเส้นขอบเทาเรียบ ๆ — ให้มีจุดสนใจโดยไม่ต้องใส่ไอคอนรก */
+  &::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    bottom: -1px;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--color-primary) 60%, transparent) 18%,
+      color-mix(in srgb, var(--color-secondary) 50%, transparent) 78%,
+      transparent
+    );
+  }
+  /* แถบสั้น ๆ สีแบรนด์หน้าชื่อระบบ */
+  &__mark {
+    width: 4px;
+    height: 1.6rem;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: var(--grad-brand);
+  }
+  &__title {
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    color: var(--color-ink);
+    line-height: 1.2;
+  }
+  &__sub {
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-ink-soft);
+  }
+}
+
+/* ---------- หัวเรื่องของแต่ละหน้า ---------- */
+.page-head {
+  position: relative;
+  padding-inline-start: 0.95rem;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset-block: 0.2rem;
+    inset-inline-start: 0;
+    width: 4px;
+    border-radius: 999px;
+    background: var(--grad-brand);
+  }
+
+  &__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.35;
+    color: var(--color-ink);
+  }
+  &__sub {
+    margin-top: 0.1rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--color-ink-soft);
+  }
+}
+
+/* ---------- Sidebar nav active ---------- */
+.nav-link.nav-active {
+  background: var(--grad-brand-soft);
+  color: var(--color-primary-dark);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+:root[data-theme="dark"] .nav-link.nav-active { color: var(--color-primary); }
+
+/* ---------- การ์ด ---------- */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.glass {
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+}
+
+/* ---------- ฟอร์ม ---------- */
+.lbl {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  letter-spacing: 0.01em;
+}
+/* อยู่ใน @layer components เพื่อให้ utility ของ Tailwind (เช่น pl-10, px-11)
+   ชนะ padding ของ .inp ได้ — แก้ปัญหาไอคอนทับตัวหนังสือในช่องที่มีไอคอน */
+@layer components {
+  .inp {
+    width: 100%;
+    border-radius: 11px;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    padding: 0.6rem 0.8rem;
+    color: var(--color-ink);
+    font-family: inherit;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    &::placeholder { color: color-mix(in srgb, var(--color-ink-soft) 70%, transparent); }
+    &:focus {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 4px var(--ring);
+    }
+  }
+
+  /* ช่องที่ระบบเติมให้เอง แก้ไม่ได้ — ใช้ token ของธีมล้วน
+     ห้ามใช้สีตายตัวอย่าง bg-slate-50: มันขาวทุกโหมด พอเป็นโหมดมืดจะกลายเป็น
+     ตัวอักษรขาวบนพื้นขาว (dark: ของ Tailwind ก็ไม่ช่วย เพราะอิง prefers-color-scheme
+     ไม่ใช่ data-theme ที่โปรเจกต์นี้ใช้) */
+  .inp--readonly {
+    background: color-mix(in srgb, var(--color-ink-soft) 9%, var(--color-surface));
+    border-style: dashed;
+    cursor: default;
+    &:focus {
+      border-color: var(--color-line);
+      box-shadow: none;
+    }
+  }
+}
+/* ---------- Dropdown (select) ให้เข้าธีม ----------
+   ใช้ customizable select ของ Chromium (appearance: base-select) จึงจัดสไตล์
+   ตัวป็อปอัปได้จริง — เบราว์เซอร์ที่ยังไม่รองรับจะตกไปใช้ dropdown เดิมของระบบ */
+@supports (appearance: base-select) {
+  select {
+    appearance: base-select;
+
+    &::picker-icon {
+      color: var(--color-ink-soft);
+      transition: transform 0.2s ease, color 0.2s ease;
+    }
+    &:open::picker-icon {
+      transform: rotate(180deg);
+      color: var(--color-primary);
+    }
+    &:disabled::picker-icon { opacity: 0.4; }
+
+    /* กล่องรายการ */
+    &::picker(select) {
+      appearance: base-select;
+      box-sizing: border-box;
+      margin-block-start: 6px;
+      padding: 6px;
+      border: 1px solid var(--color-line);
+      border-radius: 14px;
+      background: var(--color-elevated);
+      box-shadow: var(--shadow-pop);
+      max-height: 17rem;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: color-mix(in srgb, var(--color-ink-soft) 35%, transparent) transparent;
+
+      /* เปิด/ปิดแบบนุ่ม ๆ แทนการกระโดดโผล่ */
+      opacity: 0;
+      transform: translateY(-6px);
+      transition:
+        opacity 0.16s ease,
+        transform 0.16s ease,
+        display 0.16s allow-discrete,
+        overlay 0.16s allow-discrete;
+    }
+    &:open::picker(select) {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @starting-style {
+      &:open::picker(select) {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
+    }
+
+    /* แต่ละรายการ */
+    & option {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 0;
+      padding: 0.45rem 0.6rem;
+      border-radius: 9px;
+      font-size: 0.875rem;
+      color: var(--color-ink);
+      background: transparent;
+      cursor: pointer;
+      transition: background 0.12s ease, color 0.12s ease;
+
+      &:hover,
+      &:focus {
+        background: var(--color-primary-soft);
+        color: var(--color-primary-dark);
+        outline: none;
+      }
+      &:checked {
+        background: var(--color-primary-soft);
+        color: var(--color-primary-dark);
+        font-weight: 600;
+      }
+      &:disabled {
+        color: var(--color-ink-soft);
+        opacity: 0.5;
+        cursor: default;
+      }
+
+      /* เครื่องหมายถูกของรายการที่เลือก — ดันไปชิดขวา ใช้สีธีม */
+      &::checkmark {
+        order: 1;
+        margin-inline-start: auto;
+        color: var(--color-primary);
+      }
+      &:not(:checked)::checkmark { visibility: hidden; }
+    }
+  }
+}
+
+/* ---------- ตัวอย่างก่อนพิมพ์ (แทนที่จะพึ่งหน้าต่างพิมพ์ของเบราว์เซอร์ซึ่งปรับอะไรไม่ได้) ---------- */
+.preview {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  background: rgba(8, 20, 18, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+
+  &__bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--color-line);
+    background: var(--color-elevated);
+  }
+
+  &__btn {
+    display: grid;
+    place-items: center;
+    height: 2.15rem;
+    min-width: 2.15rem;
+    padding: 0 0.5rem;
+    border: 1px solid var(--color-line);
+    border-radius: 0.6rem;
+    color: var(--color-ink);
+    font-size: 0.85rem;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    &:hover {
+      background: var(--color-primary-soft);
+      border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-line));
+      color: var(--color-primary-dark);
+    }
+    &--wide { min-width: 3.6rem; font-variant-numeric: tabular-nums; }
+  }
+
+  /* พื้นที่เลื่อนดู — คลิกตรงนี้ (นอกกระดาษ) เพื่อปิด */
+  &__scroll {
+    flex: 1;
+    overflow: auto;
+    padding: 1.75rem 1rem 2.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  /* ใช้ zoom ไม่ใช่ transform: scale เพราะ zoom คำนวณ layout ใหม่จริง
+     scrollbar กับการจัดกึ่งกลางจึงถูกต้องตามขนาดที่ย่อ/ขยาย */
+  &__stage {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    width: 794px; /* A4 @96dpi — เอกสารจึงเรนเดอร์เท่าขนาดจริงก่อนถูก zoom */
+    flex-shrink: 0;
+  }
+}
+
+/* ---------- กล่องยืนยัน (แทน confirm() ของเบราว์เซอร์) ---------- */
+.confirm {
+  max-width: min(27rem, calc(100vw - 2rem));
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  overflow: visible;
+  /* จำเป็น — CSS reset ตั้ง margin:0 ให้ทุก element ทับ margin:auto ของ <dialog>
+     ทำให้กล่องไปติดมุมซ้ายบนแทนที่จะอยู่กึ่งกลางจอ */
+  margin: auto;
+
+  &::backdrop {
+    background: rgba(8, 20, 18, 0.45);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+
+  &__card {
+    padding: 1.4rem 1.5rem 1.25rem;
+    border: 1px solid var(--color-line);
+    border-radius: 1.1rem;
+    background: var(--color-elevated);
+    box-shadow: var(--shadow-pop);
+  }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    height: 2.5rem;
+    width: 2.5rem;
+    border-radius: 999px;
+    background: var(--color-primary-soft);
+    color: var(--color-primary-dark);
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1;
+
+    &--danger {
+      background: color-mix(in srgb, #ef4444 14%, transparent);
+      color: #dc2626;
+    }
+  }
+
+  &__title {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.5;
+    color: var(--color-ink);
+  }
+  &__message {
+    margin-top: 0.3rem;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--color-ink-soft);
+  }
+  /* ไม่ใส่กรอบ — ชื่อยาว ๆ จะได้ตัดบรรทัดไหลไปตามปกติ ไม่ดันกล่องจนเสียรูป */
+  &__detail {
+    margin-top: 0.45rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.55;
+    color: var(--color-ink);
+    overflow-wrap: anywhere;
+  }
+
+  /* เปิดแบบนุ่ม ๆ ให้เข้าชุดกับ dropdown/ปฏิทิน */
+  opacity: 0;
+  transform: translateY(-8px) scale(0.97);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1),
+    display 0.18s allow-discrete,
+    overlay 0.18s allow-discrete;
+
+  &[open] {
+    opacity: 1;
+    transform: none;
+  }
+  @starting-style {
+    &[open] {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.97);
+    }
+  }
+  &::backdrop {
+    opacity: 0;
+    transition: opacity 0.18s ease, display 0.18s allow-discrete, overlay 0.18s allow-discrete;
+  }
+  &[open]::backdrop { opacity: 1; }
+  @starting-style {
+    &[open]::backdrop { opacity: 0; }
+  }
+}
+
+/* ---------- Toast แจ้งเตือน ---------- */
+.toast-host {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: min(22rem, calc(100vw - 2rem));
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--color-line);
+  border-left: 4px solid var(--color-primary);
+  border-radius: 0.9rem;
+  background: var(--color-elevated);
+  box-shadow: var(--shadow-pop);
+  animation: toastIn 0.22s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    height: 1.4rem;
+    width: 1.4rem;
+    border-radius: 999px;
+    background: var(--color-primary-soft);
+    color: var(--color-primary-dark);
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  &__title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+  &__detail {
+    margin-top: 0.1rem;
+    font-size: 0.76rem;
+    line-height: 1.45;
+    color: var(--color-ink-soft);
+  }
+  &__close {
+    flex-shrink: 0;
+    border-radius: 0.4rem;
+    padding: 0.1rem 0.25rem;
+    color: var(--color-ink-soft);
+    font-size: 0.75rem;
+    transition: background 0.15s ease, color 0.15s ease;
+    &:hover {
+      background: var(--color-primary-soft);
+      color: var(--color-ink);
+    }
+  }
+
+  /* ผิดพลาด = แดง, ข้อมูล = มัสตาร์ด (ค่าเริ่มต้นคือมิ้นต์ = สำเร็จ) */
+  &--error {
+    border-left-color: #ef4444;
+    .toast__icon {
+      background: color-mix(in srgb, #ef4444 16%, transparent);
+      color: #dc2626;
+    }
+  }
+  &--info {
+    border-left-color: var(--color-secondary);
+    .toast__icon {
+      background: var(--color-secondary-soft);
+      color: var(--color-secondary-dark);
+    }
+  }
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(12px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---------- ปฏิทินเลือกวันที่ (app-date-picker) ---------- */
+/* กล่องปฏิทินเป็น popover → อยู่ใน top layer, ตำแหน่งคำนวณจาก JS (ดู reposition()) */
+.cal-pop {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: 18.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  background: var(--color-elevated);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-pop);
+  overflow: visible;
+
+  /* เปิด/ปิดแบบนุ่ม ๆ ให้เข้าชุดกับ dropdown */
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease,
+    display 0.16s allow-discrete,
+    overlay 0.16s allow-discrete;
+
+  &:popover-open {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  @starting-style {
+    &:popover-open {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+  }
+}
+.cal-nav {
+  display: grid;
+  place-items: center;
+  height: 1.75rem;
+  width: 1.75rem;
+  border-radius: 0.55rem;
+  color: var(--color-ink-soft);
+  font-size: 0.95rem;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease;
+  &:hover {
+    background: var(--color-primary-soft);
+    color: var(--color-primary-dark);
+  }
+}
+.cal-day {
+  height: 2rem;
+  border-radius: 0.6rem;
+  font-size: 0.8rem;
+  color: var(--color-ink);
+  transition: background 0.12s ease, color 0.12s ease;
+  &:hover {
+    background: var(--color-primary-soft);
+    color: var(--color-primary-dark);
+  }
+  /* วันของเดือนอื่นที่ล้นเข้ามาในตาราง */
+  &--out { color: color-mix(in srgb, var(--color-ink-soft) 55%, transparent); }
+  /* วันนี้ — วงขอบบาง ๆ ไม่ทึบ จะได้ไม่แย่งสายตากับวันที่เลือก */
+  &--today {
+    box-shadow: inset 0 0 0 1.5px var(--color-primary);
+    font-weight: 600;
+  }
+  &--sel,
+  &--sel:hover {
+    background: var(--color-primary);
+    color: #fff;
+    font-weight: 700;
+  }
+}
+.cal-action {
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-weight: 500;
+  color: var(--color-ink-soft);
+  transition: background 0.15s ease, color 0.15s ease;
+  &:hover {
+    background: var(--color-primary-soft);
+    color: var(--color-primary-dark);
+  }
+  &--primary { color: var(--color-primary-dark); }
+}
+
+/* จัดปฏิทิน native ให้เข้าธีม (เผื่อยังมี input[type=date] เหลืออยู่ที่อื่น) */
+input[type="date"] {
+  accent-color: var(--color-primary);
+  &::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 2px;
+    opacity: 0.7;
+    filter: saturate(1.2);
+    transition: background 0.15s ease, opacity 0.15s ease;
+  }
+  &::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    background: var(--color-primary-soft);
+  }
+}
+:root[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.85); }
+.err {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.72rem;
+  color: #ef4444;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+/* chip แบบกดได้ ตอนปิดอยู่ — ใช้กับปุ่มสลับ "แสดงบนใบแจ้งหนี้" */
+.chip--off {
+  background: transparent;
+  border: 1px dashed var(--color-line);
+  color: var(--color-ink-soft);
+  font-weight: 500;
+}
+.chip, .chip--off { transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease; }
+button.chip:hover { background: var(--color-primary); color: #fff; }
+button.chip--off:hover { border-color: var(--color-primary); color: var(--color-primary-dark); }
+
+/* ---------- Switch เปิด/ปิด ---------- */
+.switch {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 1.5rem;
+  width: 2.75rem;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  /* ปิดอยู่: รางจม ๆ มีเงาด้านในนิดหน่อยให้ดูมีมิติ */
+  background: color-mix(in srgb, var(--color-ink-soft) 22%, transparent);
+  box-shadow: inset 0 1px 2px rgba(16, 33, 31, 0.12);
+  cursor: pointer;
+  transition:
+    background 0.24s cubic-bezier(0.2, 0.9, 0.3, 1),
+    border-color 0.24s ease,
+    box-shadow 0.2s ease;
+
+  &__knob {
+    position: absolute;
+    left: 2px;
+    height: 1.15rem;
+    width: 1.15rem;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(16, 33, 31, 0.28), 0 2px 6px rgba(16, 33, 31, 0.16);
+    transition: transform 0.24s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px var(--ring);
+  }
+
+  /* เปิดอยู่: รางไล่สีแบรนด์ + ลูกบิดเลื่อนไปขวา */
+  &[aria-checked='true'] {
+    background: var(--grad-brand);
+    border-color: transparent;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary) 40%, transparent);
+
+    .switch__knob { transform: translateX(1.25rem); }
+
+    &:focus-visible { box-shadow: 0 0 0 4px var(--ring); }
+  }
+
+  &:disabled,
+  &[aria-disabled='true'] {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+}
+
+/* ---------- ปุ่มไอคอนในตาราง ---------- */
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  height: 2rem;
+  width: 2rem;
+  border-radius: 0.5rem;
+  color: var(--color-ink-soft);
+  transition: background 0.15s ease, color 0.15s ease;
+  &:hover {
+    background: var(--color-primary-soft);
+    color: var(--color-primary-dark);
+  }
+  &--danger:hover {
+    background: color-mix(in srgb, #ef4444 12%, transparent);
+    color: #dc2626;
+  }
+}
+
+/* ---------- Spinner ---------- */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0%, var(--color-primary) 90%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  animation: spin 0.8s linear infinite;
+}
+.spinner--sm { width: 20px; height: 20px; -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px)); mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px)); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Animations ---------- */
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes floaty { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-16px) } }
+@keyframes auroraShift { 0% { transform: translate(0,0) scale(1); } 33% { transform: translate(6%, -4%) scale(1.1); } 66% { transform: translate(-5%, 5%) scale(1.05); } 100% { transform: translate(0,0) scale(1); } }
+.animate-in { animation: fadeInUp 0.4s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* ---------- Print: ให้เอกสารพิมพ์ออกมาสะอาด (ไม่ติด UI, ใช้โทนสว่างเสมอ) ---------- */
+@media print {
+  /* ขอบกระดาษ 0 — ได้สองอย่างพร้อมกัน:
+     1) เบราว์เซอร์ไม่มีที่วางหัว/ท้ายกระดาษ (วันที่ · ชื่อระบบ · URL · เลขหน้า) จึงไม่พิมพ์ออกมา
+     2) เอกสารได้ความกว้างเต็ม 210mm (794px @96dpi) เท่ากับตอนจับภาพทำ PDF พอดี
+        ของเดิม margin 14mm เหลือพื้นที่แค่ 182mm (688px) ข้อความเลยตัดบรรทัดเพิ่ม
+        จนเนื้อหาสูงเกิน 1 หน้า และลายเซ็นตกไปหน้าที่ 2 */
+  @page { size: A4; margin: 0; }
+  html, body { margin: 0 !important; padding: 0 !important; }
+
+  /* ปิดแอนิเมชันตอนพิมพ์ — ใบสำเนาถูก display:none บนจอ แอนิเมชัน fadeInUp จึงไม่เคยเล่น
+     พอโผล่มาตอนพิมพ์ animation-fill-mode:both จะค้างที่เฟรมแรก (opacity:0, translateY(10px))
+     ทำให้พิมพ์ออกมาเป็นหน้าเปล่า */
+  .animate-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* เอกสารเต็มหน้า A4 พอดี — ระบุความสูงเป็น mm ตรง ๆ (ไม่พึ่ง aspect-ratio)
+     เพราะ 297mm แปลงเป็น px ได้ 1122.52 แต่ aspect-ratio ปัดขึ้นเป็น 1123px
+     เศษ 0.5px นั้นทำให้เกินหน้าและดันเนื้อหาส่วนท้ายไปหน้าที่ 2 ได้ */
+  .invoice-doc {
+    width: 210mm !important;
+    height: 297mm !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  :root, :root[data-theme="dark"], :root[data-theme="soft"] {
+    --color-canvas: #ffffff;
+    --color-surface: #ffffff;
+    --color-elevated: #ffffff;
+    --color-ink: #16211f;
+    --color-ink-soft: #61716d;
+    --color-line: #e4edeb;
+    color-scheme: light;
+  }
+  body { background: #ffffff !important; }
+  /* พิมพ์สีพื้นหลัง (แถบมิ้น) ออกมาด้วย */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .card { box-shadow: none !important; }
+}

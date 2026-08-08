@@ -1,0 +1,107 @@
+<div class="mx-auto max-w-4xl">
+
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div class="page-head">
+      <h1 class="page-head__title">ผู้รับ</h1>
+      <p class="page-head__sub">
+        บันทึกผู้รับไว้ล่วงหน้า แล้วเลือกจาก dropdown ตอนสร้างใบแจ้งหนี้ ระบบจะเติมข้อมูลให้อัตโนมัติ
+      </p>
+    </div>
+    <button type="button" class="btn btn--primary" (click)="openCreate()">+ เพิ่มผู้รับ</button>
+  </div>
+
+  <!-- ฟอร์มเพิ่ม/แก้ไข -->
+  @if (formOpen()) {
+    <section class="card animate-in mb-6 p-6">
+      <h2 class="mb-4 text-base font-semibold text-ink">
+        {{ editingId() ? 'แก้ไขผู้รับ' : 'เพิ่มผู้รับใหม่' }}
+      </h2>
+      <form [formGroup]="form" (ngSubmit)="save()" novalidate class="space-y-4">
+        <label class="block">
+          <span class="lbl">ชื่อ / บริษัท <span class="text-red-500">*</span></span>
+          <input formControlName="name" class="inp" />
+          @if (form.controls.name.touched && form.controls.name.invalid) { <span class="err">กรุณากรอกชื่อผู้รับ</span> }
+        </label>
+
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block">
+            <span class="lbl">เลขประจำตัวผู้เสียภาษี (13 หลัก)</span>
+            <input formControlName="taxId" class="inp" appDigitsOnly="13" inputmode="numeric" />
+            @if (form.controls.taxId.touched && form.controls.taxId.invalid) {
+              @if (form.controls.taxId.hasError('taxIdFormat')) {
+                <span class="err">ต้องเป็นตัวเลข 13 หลัก</span>
+              } @else {
+                <span class="err">เลขไม่ถูกต้อง — หลักตรวจสอบ (check digit) ไม่ตรง</span>
+              }
+            }
+          </label>
+
+          <label class="block">
+            <span class="lbl">เบอร์โทร (10 หลัก)</span>
+            <input formControlName="phone" class="inp" appDigitsOnly="10" inputmode="numeric" />
+            @if (form.controls.phone.touched && form.controls.phone.invalid) { <span class="err">เบอร์โทรต้องเป็นตัวเลข 10 หลัก</span> }
+          </label>
+        </div>
+
+        <app-address-picker formControlName="address" />
+
+        <div class="flex justify-end gap-3">
+          <button type="button" class="btn btn--ghost" (click)="closeForm()">ยกเลิก</button>
+          <button type="submit" class="btn btn--primary" [disabled]="saving()">
+            @if (saving()) { <span class="spinner spinner--sm" style="--color-primary:#fff"></span> กำลังบันทึก… }
+            @else { บันทึก }
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+
+  <!-- รายการผู้รับ -->
+  <section class="card animate-in overflow-hidden">
+    @if (loading()) {
+      <div class="p-10"><app-spinner label="กำลังโหลดรายชื่อผู้รับ…" /></div>
+    } @else if (!recipients().length) {
+      <div class="p-10 text-center text-sm text-ink-soft">
+        ยังไม่มีผู้รับที่บันทึกไว้ — กด "เพิ่มผู้รับ" เพื่อเริ่มต้น
+      </div>
+    } @else {
+      <div class="border-b border-line px-5 py-4">
+        <input class="inp" placeholder="🔍 ค้นหาชื่อ / เลขภาษี / เบอร์โทร / ที่อยู่…"
+               [value]="search()" (input)="onSearch($any($event.target).value)" />
+      </div>
+      @if (!filtered().length) {
+        <div class="p-10 text-center text-sm text-ink-soft">ไม่พบผู้รับที่ตรงกับคำค้น</div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[720px] text-sm">
+            <thead>
+              <tr class="border-b border-line text-left text-ink-soft">
+                <th class="px-5 py-3 font-medium">ชื่อ / บริษัท</th>
+                <th class="px-5 py-3 font-medium">เลขภาษี</th>
+                <th class="px-5 py-3 font-medium">เบอร์โทร</th>
+                <th class="px-5 py-3 font-medium">ที่อยู่</th>
+                <th class="px-5 py-3 text-center font-medium">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of pager.items(); track r.id) {
+                <tr class="border-b border-line/60 align-middle">
+                  <td class="px-5 py-3 font-medium text-ink">{{ r.name }}</td>
+                  <td class="px-5 py-3 text-ink-soft">{{ r.taxId || '-' }}</td>
+                  <td class="px-5 py-3 text-ink-soft">{{ r.phone || '-' }}</td>
+                  <td class="max-w-[22rem] px-5 py-3 text-ink-soft">{{ r.address || '-' }}</td>
+                  <td class="whitespace-nowrap px-5 py-3 text-center">
+                    <button type="button" class="icon-btn" title="แก้ไข" (click)="openEdit(r)">✎</button>
+                    <button type="button" class="icon-btn icon-btn--danger" title="ลบ" (click)="remove(r)">🗑</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <app-pagination [p]="pager" />
+      }
+    }
+  </section>
+</div>

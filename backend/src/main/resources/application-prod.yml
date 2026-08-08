@@ -1,0 +1,50 @@
+# โปรไฟล์ production — เปิดด้วย SPRING_PROFILES_ACTIVE=prod
+#
+# ตัวแปรที่ "ไม่มีค่าเริ่มต้น" ตั้งใจให้เป็นแบบนั้น ถ้าลืมตั้งแอปจะไม่ยอมสตาร์ท
+# ดีกว่าปล่อยให้ขึ้นระบบไปพร้อมรหัสลับค่าเริ่มต้นที่ใคร ๆ ก็เดาได้
+spring:
+  datasource:
+    # Aiven / ผู้ให้บริการ MySQL ส่วนใหญ่บังคับ SSL
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Bangkok&sslMode=REQUIRED
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      # ฐานข้อมูลฟรีมักจำกัดจำนวน connection — ตั้งไว้ต่ำ ๆ ให้พอดีกับ instance เล็ก
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 20000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate        # Flyway เป็นเจ้าของ schema
+    open-in-view: false
+    show-sql: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+server:
+  # Koyeb/Render กำหนดพอร์ตผ่านตัวแปร PORT
+  port: ${PORT:8080}
+  compression:
+    enabled: true
+    mime-types: text/html,text/css,application/javascript,application/json,image/svg+xml
+  error:
+    include-message: never
+    include-stacktrace: never
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}       # ต้องยาว >= 32 ตัวอักษร
+    expiration-ms: ${JWT_EXPIRATION_MS:28800000}
+  admin:
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD} # ไม่มีค่าเริ่มต้นโดยตั้งใจ
+
+logging:
+  level:
+    root: warn
+    com.chp.invoice: info

@@ -1,0 +1,54 @@
+<div class="relative">
+
+  <!-- ช่องแสดงค่า (กดเพื่อเปิดปฏิทิน) -->
+  <button #trigger type="button" class="inp flex items-center justify-between gap-2 text-left"
+          [class.opacity-60]="isDisabled()"
+          [disabled]="isDisabled()" [attr.aria-label]="ariaLabel()"
+          [attr.aria-expanded]="open()" (click)="toggle()">
+    @if (display()) {
+      <span>{{ display() }}</span>
+    } @else {
+      <span class="text-ink-soft">{{ placeholder() }}</span>
+    }
+    <svg class="shrink-0 text-ink-soft" width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"
+         [class.rotate-0]="true">
+      <rect x="2.5" y="4" width="15" height="13.5" rx="3" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M2.5 8h15" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M6.5 2.5v3M13.5 2.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+  </button>
+
+  <!-- popover="auto" → เรนเดอร์ใน top layer จึงไม่โดน stacking context / overflow ของการ์ดครอบ
+       และเบราว์เซอร์ปิดให้เองเมื่อคลิกนอกกล่องหรือกด Esc -->
+  <div #pop popover="auto" class="cal-pop" (toggle)="onToggle()">
+
+    <!-- หัวปฏิทิน : « ปีก่อน · ‹ เดือนก่อน · เดือน ปี · เดือนถัดไป › · ปีถัดไป » -->
+    <div class="mb-1.5 flex items-center gap-1">
+      <button type="button" class="cal-nav" (click)="shiftYear(-1)" title="ปีก่อนหน้า">«</button>
+      <button type="button" class="cal-nav" (click)="shiftMonth(-1)" title="เดือนก่อนหน้า">‹</button>
+      <span class="flex-1 text-center text-sm font-semibold text-ink">{{ monthLabel() }}</span>
+      <button type="button" class="cal-nav" (click)="shiftMonth(1)" title="เดือนถัดไป">›</button>
+      <button type="button" class="cal-nav" (click)="shiftYear(1)" title="ปีถัดไป">»</button>
+    </div>
+
+    <!-- ชื่อวัน -->
+    <div class="grid grid-cols-7 gap-0.5 text-center text-[11px] font-medium text-ink-soft">
+      @for (w of weekdays; track w) { <span class="py-1">{{ w }}</span> }
+    </div>
+
+    <!-- ตารางวัน -->
+    <div class="grid grid-cols-7 gap-0.5">
+      @for (d of days(); track d.iso) {
+        <button type="button" class="cal-day" (click)="pick(d.iso)"
+                [class.cal-day--out]="!d.inMonth"
+                [class.cal-day--today]="d.isToday"
+                [class.cal-day--sel]="d.isSelected">{{ d.day }}</button>
+      }
+    </div>
+
+    <div class="mt-2 flex items-center justify-between border-t border-line pt-2 text-xs">
+      <button type="button" class="cal-action" (click)="clear()">ล้าง</button>
+      <button type="button" class="cal-action cal-action--primary" (click)="pickToday()">วันนี้</button>
+    </div>
+  </div>
+</div>

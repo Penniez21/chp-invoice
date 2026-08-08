@@ -1,0 +1,112 @@
+<div class="flex min-h-screen print:min-h-0">
+
+  <!-- ===== Sidebar ===== -->
+  <aside
+    class="fixed inset-y-0 left-0 z-40 flex flex-col border-r border-line bg-surface transition-all duration-300 ease-out lg:translate-x-0 print:hidden"
+    [class.w-64]="!collapsed()"
+    [class.w-20]="collapsed()"
+    [class.-translate-x-full]="!mobileOpen()"
+    [class.translate-x-0]="mobileOpen()">
+
+    <!-- brand -->
+    <div class="flex h-16 items-center gap-2 px-4">
+      @if (!collapsed()) {
+        <a routerLink="/dashboard"><app-logo [size]="34" [showWord]="true" /></a>
+      } @else {
+        <a routerLink="/dashboard" class="mx-auto"><app-logo [size]="34" [showWord]="false" /></a>
+      }
+    </div>
+
+    <!-- nav -->
+    <nav class="flex-1 space-y-1 px-3 py-4">
+      @for (item of nav; track item.link) {
+        <a [routerLink]="item.link"
+           routerLinkActive="nav-active"
+           [routerLinkActiveOptions]="{ exact: !!item.exact }"
+           (click)="mobileOpen.set(false)"
+           class="nav-link group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-soft transition-all hover:bg-primary-soft hover:text-ink"
+           [class.justify-center]="collapsed()">
+          <span class="grid h-6 w-6 place-items-center text-lg leading-none">{{ item.icon }}</span>
+          @if (!collapsed()) { <span>{{ item.label }}</span> }
+        </a>
+      }
+    </nav>
+
+    <!-- collapse toggle (desktop) -->
+    <div class="hidden border-t border-line p-3 lg:block">
+      <button (click)="toggleCollapse()"
+              class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-ink-soft transition hover:bg-primary-soft hover:text-ink"
+              [class.justify-center]="collapsed()">
+        <span class="text-lg transition-transform duration-300" [class.rotate-180]="collapsed()">⟨</span>
+        @if (!collapsed()) { <span>ย่อเมนู</span> }
+      </button>
+    </div>
+  </aside>
+
+  <!-- mobile overlay -->
+  @if (mobileOpen()) {
+    <div class="fixed inset-0 z-30 bg-black/40 lg:hidden" (click)="mobileOpen.set(false)"></div>
+  }
+
+  <!-- ===== Main ===== -->
+  <div class="flex min-w-0 flex-1 flex-col transition-all duration-300 print:!ml-0"
+       [class.lg:ml-64]="!collapsed()"
+       [class.lg:ml-20]="collapsed()">
+
+    <!-- navbar -->
+    <header class="navbar glass sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-line px-4 sm:px-6 print:hidden">
+      <div class="flex min-w-0 items-center gap-3">
+        <button class="grid h-9 w-9 place-items-center rounded-lg text-ink-soft hover:bg-primary-soft lg:hidden"
+                (click)="mobileOpen.set(true)">☰</button>
+        <span class="navbar__mark"></span>
+        <div class="min-w-0 leading-tight">
+          <p class="navbar__title truncate text-base sm:text-lg">ระบบทำรายงานผู้เสียภาษี</p>
+          <p class="navbar__sub hidden sm:block">Taxpayer Report System</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- theme switcher -->
+        <div class="flex items-center gap-1 rounded-full border border-line bg-surface p-1">
+          @for (t of themes; track t.mode) {
+            <button (click)="theme.set(t.mode)" [title]="t.title"
+                    class="grid h-7 w-7 place-items-center rounded-full text-sm transition-all"
+                    [class]="theme.mode() === t.mode ? 'bg-primary text-white shadow' : 'text-ink-soft hover:text-ink'">
+              {{ t.icon }}
+            </button>
+          }
+        </div>
+
+        <!-- user -->
+        <div class="relative">
+          <button (click)="userMenuOpen.set(!userMenuOpen())"
+                  class="flex items-center gap-2 rounded-full border border-line py-1 pl-1 pr-2.5 transition hover:border-primary">
+            <span class="grid h-7 w-7 place-items-center rounded-full bg-primary text-xs font-bold text-white">{{ initials() }}</span>
+            <span class="hidden text-sm font-medium text-ink sm:inline">{{ username() }}</span>
+            <span class="text-xs text-ink-soft">▾</span>
+          </button>
+          @if (userMenuOpen()) {
+            <div class="animate-in absolute right-0 mt-2 w-44 overflow-hidden rounded-xl border border-line bg-elevated shadow-[var(--shadow-pop)]"
+                 style="--tw-shadow: var(--shadow-pop)">
+              <div class="border-b border-line px-4 py-3">
+                <p class="text-xs text-ink-soft">เข้าสู่ระบบเป็น</p>
+                <p class="truncate text-sm font-semibold text-ink">{{ username() }}</p>
+              </div>
+              <button (click)="logout()" class="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-ink transition hover:bg-primary-soft">
+                <span>⇥</span> ออกจากระบบ
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </header>
+
+    <!-- page content -->
+    <main class="flex-1 px-4 py-6 sm:px-6 lg:px-8 print:!p-0">
+      <router-outlet />
+    </main>
+  </div>
+
+  <app-toast-host />
+  <app-confirm-host />
+</div>

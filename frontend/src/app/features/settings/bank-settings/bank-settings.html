@@ -1,0 +1,128 @@
+<div class="mx-auto max-w-4xl">
+
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div class="page-head">
+      <h1 class="page-head__title">บัญชีธนาคาร</h1>
+      <p class="page-head__sub">
+        เก็บได้ไม่จำกัด — เลือกให้แสดงบนใบแจ้งหนี้ได้สูงสุด {{ maxShown }} บัญชี
+        (ตอนนี้เลือกไว้ <span class="font-semibold text-ink">{{ shownCount() }}</span>/{{ maxShown }})
+      </p>
+    </div>
+    <button type="button" class="btn btn--primary" (click)="openCreate()">+ เพิ่มบัญชี</button>
+  </div>
+
+  <!-- ฟอร์มเพิ่ม/แก้ไข -->
+  @if (formOpen()) {
+    <section class="card animate-in mb-6 p-6">
+      <h2 class="mb-4 text-base font-semibold text-ink">
+        {{ editingId() ? 'แก้ไขบัญชี' : 'เพิ่มบัญชีใหม่' }}
+      </h2>
+      <form [formGroup]="form" (ngSubmit)="save()" novalidate class="space-y-4">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block">
+            <span class="lbl">ธนาคาร <span class="text-red-500">*</span></span>
+            <input formControlName="bankName" class="inp" list="bank-name-options" placeholder="เลือกหรือพิมพ์ชื่อธนาคาร" />
+            <datalist id="bank-name-options">
+              @for (b of bankNames; track b) { <option [value]="b"></option> }
+            </datalist>
+            @if (form.controls.bankName.touched && form.controls.bankName.invalid) { <span class="err">กรุณากรอกชื่อธนาคาร</span> }
+          </label>
+
+          <label class="block">
+            <span class="lbl">ประเภทบัญชี</span>
+            <input formControlName="accountType" class="inp" list="bank-type-options" placeholder="ออมทรัพย์" />
+            <datalist id="bank-type-options">
+              <option value="ออมทรัพย์"></option>
+              <option value="กระแสรายวัน"></option>
+              <option value="ฝากประจำ"></option>
+            </datalist>
+          </label>
+
+          <label class="block">
+            <span class="lbl">เลขที่บัญชี <span class="text-red-500">*</span></span>
+            <input formControlName="accountNo" class="inp" appDigitsOnly="15" inputmode="numeric" placeholder="1234567890" />
+            @if (form.controls.accountNo.touched && form.controls.accountNo.invalid) { <span class="err">กรุณากรอกเลขที่บัญชี</span> }
+          </label>
+
+          <label class="block">
+            <span class="lbl">ชื่อบัญชี</span>
+            <input formControlName="accountName" class="inp" placeholder="เว้นว่าง = ใช้ชื่อผู้ออกในใบแจ้งหนี้" />
+          </label>
+        </div>
+
+        <div class="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3">
+          <app-switch formControlName="showOnInvoice" ariaLabel="แสดงบัญชีนี้บนใบแจ้งหนี้" />
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-ink">แสดงบัญชีนี้บนใบแจ้งหนี้</p>
+            <p class="text-xs text-ink-soft">
+              @if (shownFull() && !form.controls.showOnInvoice.value) {
+                เลือกครบ {{ maxShown }} บัญชีแล้ว — ต้องเอาบัญชีอื่นออกก่อน
+              } @else {
+                เลือกได้สูงสุด {{ maxShown }} บัญชี
+              }
+            </p>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button type="button" class="btn btn--ghost" (click)="closeForm()">ยกเลิก</button>
+          <button type="submit" class="btn btn--primary" [disabled]="saving()">
+            @if (saving()) { <span class="spinner spinner--sm" style="--color-primary:#fff"></span> กำลังบันทึก… }
+            @else { บันทึก }
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+
+  <!-- รายการบัญชี -->
+  <section class="card animate-in overflow-hidden">
+    @if (loading()) {
+      <div class="p-10"><app-spinner label="กำลังโหลดบัญชีธนาคาร…" /></div>
+    } @else if (!accounts().length) {
+      <div class="p-10 text-center text-sm text-ink-soft">
+        ยังไม่มีบัญชีธนาคาร — กด "เพิ่มบัญชี" เพื่อเริ่มต้น
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[720px] text-sm">
+          <thead>
+            <tr class="border-b border-line text-left text-ink-soft">
+              <th class="px-5 py-3 font-medium">ธนาคาร</th>
+              <th class="px-5 py-3 font-medium">ประเภท</th>
+              <th class="px-5 py-3 font-medium">เลขที่บัญชี</th>
+              <th class="px-5 py-3 font-medium">ชื่อบัญชี</th>
+              <th class="px-5 py-3 text-center font-medium">บนใบแจ้งหนี้</th>
+              <th class="px-5 py-3 text-center font-medium">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (a of pager.items(); track a.id) {
+              <tr class="border-b border-line/60 align-middle">
+                <td class="px-5 py-3 font-medium text-ink">{{ a.bankName }}</td>
+                <td class="px-5 py-3 text-ink-soft">{{ a.accountType || '-' }}</td>
+                <td class="px-5 py-3 font-semibold text-ink">{{ a.accountNo }}</td>
+                <td class="px-5 py-3 text-ink-soft">{{ a.accountName || '-' }}</td>
+                <td class="px-5 py-3">
+                  <div class="flex flex-col items-center gap-1">
+                    <app-switch [checked]="a.showOnInvoice" (toggled)="toggleShow(a)"
+                                [ariaLabel]="'แสดง ' + a.bankName + ' บนใบแจ้งหนี้'" />
+                    <span class="text-[11px]" [class]="a.showOnInvoice ? 'font-medium text-primary-dark' : 'text-ink-soft'">
+                      {{ a.showOnInvoice ? 'แสดงอยู่' : 'ไม่แสดง' }}
+                    </span>
+                  </div>
+                </td>
+                <td class="whitespace-nowrap px-5 py-3 text-center">
+                  <button type="button" class="icon-btn" title="แก้ไข" (click)="openEdit(a)">✎</button>
+                  <button type="button" class="icon-btn icon-btn--danger" title="ลบ" (click)="remove(a)">🗑</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-pagination [p]="pager" />
+    }
+  </section>
+</div>

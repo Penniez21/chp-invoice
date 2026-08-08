@@ -1,0 +1,215 @@
+<div class="mx-auto max-w-4xl">
+
+  <!-- header + stepper -->
+  <div class="mb-6">
+    <div class="mb-5 flex items-center justify-between gap-4">
+      <div class="page-head">
+        <h1 class="page-head__title">{{ editingId() ? 'แก้ไขใบแจ้งหนี้' : 'สร้างใบแจ้งหนี้' }}</h1>
+        <p class="page-head__sub">กรอกข้อมูลให้ครบถ้วน ระบบคำนวณยอดและภาษีให้อัตโนมัติ</p>
+      </div>
+    </div>
+    <div class="card px-4 py-4">
+      <app-stepper [steps]="steps" [current]="0" />
+    </div>
+  </div>
+
+  @if (loadingInvoice()) {
+    <app-spinner label="กำลังโหลดข้อมูล…" />
+  } @else {
+    @if (errorMsg()) {
+      <div class="animate-in mb-5 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <span>⚠</span> {{ errorMsg() }}
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="space-y-6">
+
+      <!-- ข้อมูลใบแจ้งหนี้ -->
+      <section class="card animate-in p-6">
+        <div class="mb-4 flex items-center gap-2">
+          <span class="grid h-8 w-8 place-items-center rounded-lg bg-primary-soft text-primary-dark">🧾</span>
+          <h2 class="text-base font-semibold text-ink">ข้อมูลใบแจ้งหนี้</h2>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block">
+            <span class="lbl">เลขที่ใบแจ้งหนี้ <span class="text-red-500">*</span></span>
+            <input formControlName="invoiceNo" class="inp" placeholder="001" />
+            @if (form.controls.invoiceNo.touched && form.controls.invoiceNo.invalid) { <span class="err">กรุณากรอกเลขที่</span> }
+          </label>
+          <label class="block">
+            <span class="lbl">หมายเลขสั่งซื้อ (PO)</span>
+            <input formControlName="poNo" class="inp" placeholder="001" />
+          </label>
+          <div class="block">
+            <span class="lbl">วันที่ <span class="text-red-500">*</span></span>
+            <app-date-picker formControlName="issueDate" ariaLabel="วันที่" />
+          </div>
+          <div class="block">
+            <span class="lbl">กำหนดส่ง</span>
+            <app-date-picker formControlName="dueDate" ariaLabel="กำหนดส่ง" placeholder="ไม่ระบุ" />
+          </div>
+        </div>
+      </section>
+
+      <!-- ผู้ออก / ผู้รับ (เต็มความกว้าง เรียงบน-ล่าง เพื่อช่องกรอกที่กว้างขึ้น) -->
+      <div class="space-y-6">
+        <section class="card animate-in p-6">
+          <div class="mb-4 flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-primary-soft text-primary-dark">📤</span>
+            <h2 class="text-base font-semibold text-ink">ผู้ออก</h2>
+          </div>
+          <div class="space-y-4">
+            <label class="block">
+              <span class="lbl">ชื่อ <span class="text-red-500">*</span></span>
+              <input formControlName="issuerName" class="inp" />
+              @if (form.controls.issuerName.touched && form.controls.issuerName.invalid) { <span class="err">กรุณากรอกชื่อผู้ออก</span> }
+            </label>
+            <label class="block">
+              <span class="lbl">เลขประจำตัวผู้เสียภาษี (13 หลัก)</span>
+              <input formControlName="issuerTaxId" class="inp" appDigitsOnly="13" inputmode="numeric" />
+              @if (form.controls.issuerTaxId.touched && form.controls.issuerTaxId.invalid) {
+                @if (form.controls.issuerTaxId.hasError('taxIdFormat')) {
+                  <span class="err">ต้องเป็นตัวเลข 13 หลัก</span>
+                } @else {
+                  <span class="err">เลขไม่ถูกต้อง — หลักตรวจสอบ (check digit) ไม่ตรง</span>
+                }
+              }
+            </label>
+            <app-address-picker formControlName="issuerAddress" />
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="block">
+                <span class="lbl">อีเมล</span>
+                <input formControlName="issuerEmail" class="inp" />
+                @if (form.controls.issuerEmail.touched && form.controls.issuerEmail.invalid) { <span class="err">อีเมลไม่ถูกต้อง</span> }
+              </label>
+              <label class="block">
+                <span class="lbl">เบอร์โทร (10 หลัก)</span>
+                <input formControlName="issuerPhone" class="inp" appDigitsOnly="10" inputmode="numeric" />
+                @if (form.controls.issuerPhone.touched && form.controls.issuerPhone.invalid) { <span class="err">เบอร์โทรต้องเป็นตัวเลข 10 หลัก</span> }
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="card animate-in p-6">
+          <div class="mb-4 flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-secondary-soft text-secondary-dark">📥</span>
+            <h2 class="text-base font-semibold text-ink">ผู้รับ</h2>
+          </div>
+          <div class="space-y-4">
+            <!-- เลือกผู้รับที่บันทึกไว้ → เติมข้อมูลให้อัตโนมัติ (ไม่มีในรายการก็พิมพ์เองด้านล่างได้) -->
+            @if (savedRecipients().length) {
+              <div class="block">
+                <span class="lbl">เลือกจากผู้รับที่บันทึกไว้</span>
+                <app-combobox [options]="recipientOptions()" [value]="pickedRecipientId()"
+                              placeholder="พิมพ์ค้นหาชื่อ / เลขภาษี / เบอร์โทร…"
+                              emptyText="ไม่พบผู้รับที่ค้นหา — กรอกเองด้านล่างได้"
+                              (valueChange)="applySavedRecipient($event)" />
+              </div>
+            }
+
+            <label class="block">
+              <span class="lbl">ชื่อ / บริษัท <span class="text-red-500">*</span></span>
+              <input formControlName="recipientName" class="inp" />
+              @if (form.controls.recipientName.touched && form.controls.recipientName.invalid) { <span class="err">กรุณากรอกชื่อผู้รับ</span> }
+            </label>
+            <label class="block">
+              <span class="lbl">เลขประจำตัวผู้เสียภาษี (13 หลัก)</span>
+              <input formControlName="recipientTaxId" class="inp" appDigitsOnly="13" inputmode="numeric" />
+              @if (form.controls.recipientTaxId.touched && form.controls.recipientTaxId.invalid) {
+                @if (form.controls.recipientTaxId.hasError('taxIdFormat')) {
+                  <span class="err">ต้องเป็นตัวเลข 13 หลัก</span>
+                } @else {
+                  <span class="err">เลขไม่ถูกต้อง — หลักตรวจสอบ (check digit) ไม่ตรง</span>
+                }
+              }
+            </label>
+            <app-address-picker formControlName="recipientAddress" />
+            <!-- ใส่ในกริด 2 คอลัมน์ให้ความกว้างเท่าแถวอื่น ๆ ด้านบน (ไม่ยืดเต็มความกว้าง) -->
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="block">
+                <span class="lbl">เบอร์โทร (10 หลัก)</span>
+                <input formControlName="recipientPhone" class="inp" appDigitsOnly="10" inputmode="numeric" />
+                @if (form.controls.recipientPhone.touched && form.controls.recipientPhone.invalid) { <span class="err">เบอร์โทรต้องเป็นตัวเลข 10 หลัก</span> }
+              </label>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- รายการ -->
+      <section class="card animate-in p-6">
+        <div class="mb-4 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-primary-soft text-primary-dark">📋</span>
+            <h2 class="text-base font-semibold text-ink">รายการ</h2>
+          </div>
+          <button type="button" class="btn btn--secondary" (click)="addItem()">+ เพิ่มรายการ</button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[640px] text-sm">
+            <thead>
+              <!-- เยื้องหัวตารางให้ตรงกับ "ตัวหนังสือใน input" ไม่ใช่ขอบช่อง
+                   (= pr-2 ของ td + padding ในตัว input + เส้นขอบ = 21.6px / ซ้าย 13.8px) -->
+              <tr class="border-b border-line text-left text-ink-soft">
+                <th class="pb-2 pl-[13.8px] font-medium">คำอธิบาย</th>
+                <th class="w-24 pb-2 pr-[21.6px] text-right font-medium">ปริมาณ</th>
+                <th class="w-36 pb-2 pr-[21.6px] text-right font-medium">ราคาต่อหน่วย</th>
+                <th class="w-36 pb-2 pr-2 text-right font-medium">ทั้งหมด</th>
+                <th class="w-10 pb-2"></th>
+              </tr>
+            </thead>
+            <tbody formArrayName="items">
+              @for (item of items.controls; track item; let i = $index) {
+                <tr [formGroupName]="i" class="border-b border-line/60 align-middle">
+                  <td class="py-2 pr-2"><input formControlName="description" class="inp" placeholder="เช่น งานรื้อถอน" /></td>
+                  <td class="py-2 pr-2"><input type="number" min="0" step="1" formControlName="quantity" class="inp text-right" /></td>
+                  <td class="py-2 pr-2"><input type="number" min="0" step="0.01" formControlName="unitPrice" class="inp text-right" /></td>
+                  <td class="whitespace-nowrap py-2 pr-2 text-right font-semibold text-ink">฿ {{ formatMoney(lineTotal(i)) }}</td>
+                  <td class="py-2 text-center">
+                    <button type="button" (click)="removeItem(i)" [disabled]="items.length === 1"
+                            class="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition hover:bg-red-50 hover:text-red-600 disabled:opacity-30" title="ลบ">✕</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- สรุปยอด -->
+      <section class="card animate-in overflow-hidden">
+        <div class="p-6">
+          <div class="ml-auto max-w-sm space-y-2.5 text-sm">
+            <div class="flex justify-between">
+              <span class="text-ink-soft">ยอดรวมย่อย</span>
+              <span class="font-semibold text-ink">฿ {{ formatMoney(subTotal()) }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="flex items-center gap-2 text-ink-soft">
+                หัก ภาษี ณ ที่จ่าย
+                <input type="number" min="0" max="100" step="0.5" formControlName="whtRate"
+                       class="w-16 rounded-lg border border-line bg-surface px-2 py-1 text-right text-ink" /> %
+              </span>
+              <span class="font-semibold text-red-500">− ฿ {{ formatMoney(whtAmount()) }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center justify-between px-6 py-4" style="background: var(--grad-brand)">
+          <span class="font-semibold text-white">ยอดชำระสุทธิ</span>
+          <span class="text-xl font-bold text-white">฿ {{ formatMoney(netTotal()) }}</span>
+        </div>
+      </section>
+
+      <!-- ปุ่ม -->
+      <div class="flex justify-end gap-3">
+        <a routerLink="/dashboard" class="btn btn--ghost">ยกเลิก</a>
+        <button type="submit" [disabled]="saving()" class="btn btn--primary">
+          @if (saving()) { <span class="spinner spinner--sm" style="--color-primary:#fff"></span> กำลังบันทึก… }
+          @else { บันทึก และดูรายงาน → }
+        </button>
+      </div>
+    </form>
+  }
+</div>

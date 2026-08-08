@@ -1,0 +1,26 @@
+# ===== Frontend (Angular) =====
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/npm-debug.log*
+
+# ===== Backend (Spring Boot / Maven) =====
+backend/target/
+backend/.mvn/
+!backend/.mvn/wrapper/maven-wrapper.jar
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.iml
+
+# ===== OS =====
+Thumbs.db
+.DS_Store
+
+# ===== Env / secrets =====
+.env
+*.local
+
+# ===== เครื่องมือ/การตั้งค่าเฉพาะเครื่อง =====
+.claude/settings.local.json

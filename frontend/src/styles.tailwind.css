@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+/* ============================================================
+   ธีมสี (premium): มิ้น-ทะเล (primary) + มัสตาร์ด-ทอง (secondary)
+   ค่าเริ่มต้น = โหมด light — โหมด soft/dark override ใน styles.scss
+   ============================================================ */
+@theme static {
+  --color-primary: #16bda9;        /* มิ้น-ทะเล */
+  --color-primary-dark: #0e9e8e;
+  --color-primary-soft: #e2f7f3;
+
+  --color-secondary: #d9a441;      /* มัสตาร์ด-ทอง */
+  --color-secondary-dark: #b9862e;
+  --color-secondary-soft: #f8efd8;
+
+  --color-canvas: #f4f8f7;         /* พื้นหลังหน้า */
+  --color-surface: #ffffff;        /* การ์ด/กล่อง */
+  --color-elevated: #ffffff;       /* ป็อปอัป/เมนูลอย */
+  --color-ink: #16211f;            /* ตัวอักษรหลัก */
+  --color-ink-soft: #61716d;       /* ตัวอักษรรอง */
+  --color-line: #e4edeb;           /* เส้นขอบ */
+
+  --font-sans: "Sarabun", "Noto Sans Thai", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 16px;
+}
