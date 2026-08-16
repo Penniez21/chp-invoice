@@ -1,0 +1,48 @@
+# ระบบทำรายงานผู้เสียภาษี — ค่าตั้งต้นสำหรับ deploy ขึ้น Render
+#
+# Render อ่านไฟล์นี้เองตอนสร้าง Blueprint จึงไม่ต้องกรอกฟอร์มทีละช่อง
+#   Dashboard → New → Blueprint → เลือก repo → Apply
+#
+# หมายเหตุเรื่องความปลอดภัย: repo นี้เป็น public
+#   - ค่าที่ไม่เป็นความลับ (พอร์ต/ชื่อฐานข้อมูล/ชื่อ role) เขียนไว้ในไฟล์ได้
+#   - ค่าที่เป็นความลับใช้ `sync: false` → Render จะถามตอน Apply แล้วเก็บไว้ฝั่งเขา
+#     ไม่ถูกบันทึกลงไฟล์นี้ จึงไม่หลุดขึ้น GitHub
+services:
+  - name: chp-invoice
+    type: web
+    runtime: docker
+    plan: free
+    region: singapore          # ใกล้ไทยและใกล้ฐานข้อมูล Neon (ap-southeast-1) ที่สุด
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+
+    envVars:
+      # ---- ไม่เป็นความลับ ----------------------------------------------
+      - key: DB_PORT
+        value: "5432"          # Neon ใช้ 5432 เสมอ
+      - key: DB_NAME
+        value: neondb          # ชื่อฐานข้อมูลเริ่มต้นของ Neon
+      - key: DB_USER
+        value: neondb_owner    # ชื่อ role เริ่มต้นของ Neon เหมือนกันทุกบัญชี
+
+      # ---- Render จะถามตอน Apply (ไม่เก็บลง repo) -----------------------
+      # host ของ Neon แบบ direct — ห้ามใช้ตัวที่มี "-pooler" เพราะ Flyway
+      # ใช้ session-level advisory lock ซึ่ง PgBouncer โหมด transaction ไม่รองรับ
+      - key: DB_HOST
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      # ผู้ใช้ admin ถูกสร้างในฐานข้อมูลไปแล้ว ค่านี้จึงไม่มีผลต่อรหัสที่ใช้ล็อกอินจริง
+      # แต่โปรไฟล์ prod บังคับให้ต้องมี ไม่งั้นแอปไม่ยอมสตาร์ท
+      - key: ADMIN_PASSWORD
+        sync: false
+
+      # ---- Render สุ่มให้เอง ครั้งเดียวตอนสร้าง ---------------------------
+      # ได้ค่าสุ่ม 256 บิตเข้ารหัส base64 (44 ตัวอักษร) ยาวเกินขั้นต่ำ 32 ที่โค้ดบังคับ
+      # ไม่ต้องพิมพ์เอง ไม่ผ่านมือใคร และไม่เปลี่ยนตอน deploy รอบถัดไป
+      - key: JWT_SECRET
+        generateValue: true
+
+# SPRING_PROFILES_ACTIVE=prod ไม่ต้องใส่ที่นี่ — ตั้งไว้ใน Dockerfile แล้ว
+# PORT ก็ไม่ต้องใส่ — Render กำหนดมาให้เอง และ application-prod.yml อ่านค่านั้นอยู่

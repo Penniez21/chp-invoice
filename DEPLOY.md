@@ -127,6 +127,46 @@ openssl rand -base64 48
 
 ---
 
+## ขั้นที่ 4 (ทางเลือก) — deploy ขึ้น Render แทน
+
+Koyeb คัดกรองบัญชีฟรีด้วยคนจริง บางบัญชีค้างรออนุมัติหลายวัน ถ้าไม่อยากรอ ใช้ [Render](https://render.com) แทนได้
+**ไม่ต้องแก้โค้ดเลย** — `Dockerfile` ตัวเดิม ฐานข้อมูล Neon ตัวเดิม ตัวแปรชุดเดิม
+
+| | Koyeb Free | Render Free |
+|---|---|---|
+| บัตรเครดิต | ไม่ต้อง | ไม่ต้อง |
+| ตอนไม่มีคนใช้ | ตื่นตลอด | **หลับหลัง 15 นาที ปลุกใหม่ ~1 นาที** |
+| โควตา | 1 service | 750 ชั่วโมง/เดือน (เดือนหนึ่งมี 720 ชม.) |
+| อนุมัติบัญชี | ตรวจด้วยคน อาจรอหลายวัน | ใช้ได้ทันที |
+
+repo มี [`render.yaml`](../render.yaml) อยู่แล้ว Render จึงตั้งค่าให้เองทั้งหมด ไม่ต้องกรอกฟอร์มทีละช่อง
+
+1. สมัครที่ https://dashboard.render.com/register ด้วยบัญชี GitHub
+2. **New → Blueprint** → เลือก repo `chp-invoice` → **Connect**
+3. Render อ่าน `render.yaml` แล้วถามค่าลับ **3 ตัว** (ที่เหลือตั้งให้เองหมด)
+
+   | ถาม | ใส่ |
+   |---|---|
+   | `DB_HOST` | host **direct** จาก Neon (ตัวที่**ไม่มี** `-pooler`) |
+   | `DB_PASSWORD` | รหัสจาก Neon |
+   | `ADMIN_PASSWORD` | รหัสผู้ดูแล — ดูหมายเหตุข้างล่าง |
+
+   > `JWT_SECRET` ไม่ต้องใส่ — `render.yaml` สั่งให้ Render สุ่มค่า 256 บิตให้เอง ครั้งเดียวตอนสร้าง
+   >
+   > `ADMIN_PASSWORD` มีผลเฉพาะตอนสร้างผู้ใช้ **ครั้งแรก** ถ้าเคยรันแอปต่อฐานข้อมูลนี้มาก่อนแล้ว
+   > ผู้ใช้ถูกสร้างไปแล้ว ค่านี้จะถูกข้าม — ต้องใส่ให้ตรงกับรหัสเดิม ไม่งั้นจะงงว่าทำไมล็อกอินไม่ผ่าน
+   > (ต้องใส่ค่าอะไรสักอย่างเสมอ เพราะโปรไฟล์ prod ไม่ยอมสตาร์ทถ้าไม่มี)
+
+4. กด **Apply** แล้วรอ 10–20 นาที ครั้งแรกต้อง build ทั้ง Angular และ Maven ตั้งแต่ศูนย์
+
+ได้ URL หน้าตาแบบ `https://chp-invoice.onrender.com` (ถ้าชื่อซ้ำกับคนอื่น Render จะต่อท้ายให้เอง)
+
+> **ผลข้างเคียงของการหลับ** — `LoginAttemptService` เก็บตัวนับกันเดารหัสไว้ในหน่วยความจำ
+> พอ instance หลับ ตัวนับจะถูกล้าง แต่ผลกระทบน้อยมาก เพราะจะทำให้มันหลับได้ต้องหยุดยิงนาน
+> 15 นาที ซึ่งเท่ากับเวลาที่ระบบล็อกอยู่แล้ว ผู้โจมตีจึงไม่ได้เปรียบขึ้น
+
+---
+
 ## ขั้นที่ 5 — ตรวจว่าใช้งานได้จริง
 
 ```bash
@@ -174,8 +214,10 @@ curl https://<url-ของคุณ>/api/health
 | อาการ | สาเหตุ / วิธีแก้ |
 |---|---|
 | แอปไม่สตาร์ท ขึ้น `Could not resolve placeholder 'JWT_SECRET'` | ลืมตั้ง env — ตั้งใจให้พังตั้งแต่ต้น ไม่ใช่บั๊ก |
-| `Communications link failure` | `DB_HOST`/`DB_PORT` ผิด หรือ Aiven ยังไม่ *Running* |
-| `Access denied for user` | `DB_USER`/`DB_PASSWORD` ผิด |
+| `UnknownHostException` / `connect timed out` | `DB_HOST` ผิด — ต้องเป็น host ของ Neon ที่**ไม่มี** `-pooler` |
+| `password authentication failed for user` | `DB_USER`/`DB_PASSWORD` ผิด |
+| แอปค้างตอนสตาร์ท ไม่มี error ชัดเจน | ใช้ host ที่มี `-pooler` อยู่ — Flyway ใช้ session-level advisory lock ซึ่ง PgBouncer โหมด transaction ไม่รองรับ ให้ปิดสวิตช์ *Connection pooling* ที่หน้า Connect ของ Neon แล้วเอา host ใหม่มาใส่ |
+| `Port 8082 was already in use` (ตอนรันบนเครื่องตัวเอง) | มีแอปรอบก่อนค้างอยู่ ปิดด้วย `Ctrl+C` ที่หน้าต่างเดิม หรือ `Stop-Process -Id <PID> -Force` |
 | เปิดหน้าเว็บได้แต่ refresh แล้ว 404 | ไฟล์ Angular ไม่ได้ถูกฝังลง jar — ดู log ของ stage `frontend` ใน Docker build |
 | ล็อกอินไม่ผ่าน | `ADMIN_PASSWORD` จะมีผลเฉพาะตอนสร้าง user **ครั้งแรก** ถ้าจะเปลี่ยนทีหลังให้ใช้เมนู **บัญชีผู้ใช้** ในเว็บ (ไม่ต้องยุ่งกับฐานข้อมูล) |
 
