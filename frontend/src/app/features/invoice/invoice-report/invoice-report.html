@@ -114,9 +114,12 @@
 
       <!-- สรุปยอด -->
       <div class="mt-5 flex justify-between gap-8 border-t border-slate-200 pt-3.5">
-        <div class="flex items-start gap-1.5">
-          <span class="mt-0.5 font-medium text-slate-500">สรุป :</span>
-          <span class="max-w-[300px] text-[11px] text-slate-500">({{ bahtText(inv.subTotal) }})</span>
+        <!-- items-end ดันตัวอักษรลงไปอยู่บรรทัดเดียวกับ "จำนวนเงินที่ชำระ" ทางขวา
+             (กล่องนี้ยืดเต็มความสูงอยู่แล้วเพราะ flex ตัวนอกเป็น align-items: stretch)
+             และอ้างยอดสุทธิที่ต้องจ่ายจริง ไม่ใช่ยอดก่อนหักภาษี -->
+        <div class="flex items-end gap-1.5">
+          <span class="font-medium text-slate-500">สรุป :</span>
+          <span class="max-w-[300px] text-[11px] text-slate-500">({{ bahtText(inv.netTotal) }})</span>
         </div>
         <div class="w-64 shrink-0">
           <div class="flex justify-between py-0.5">
