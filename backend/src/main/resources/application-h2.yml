@@ -21,3 +21,10 @@ spring:
     console:
       enabled: true                # เปิด H2 console ที่ /h2-console
       path: /h2-console
+
+# dev/local: ปิดการล็อกล็อกอิน (ใส่รหัสผิดได้ไม่ต้องรอ 15 นาที)
+app:
+  login-throttle:
+    max-per-user: 1000000
+    max-per-ip: 1000000
+    lock-minutes: 0

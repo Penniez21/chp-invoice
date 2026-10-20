@@ -1,12 +1,15 @@
 package com.chp.invoice.invoice;
 
 import com.chp.invoice.invoice.dto.InvoiceRequest;
+import com.chp.invoice.invoice.dto.NextNumbersResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class InvoiceService {
@@ -29,6 +32,46 @@ public class InvoiceService {
     public Invoice findById(Long id) {
         return repository.findWithItemsById(id)
                 .orElseThrow(() -> new InvoiceNotFoundException(id));
+    }
+
+    /**
+     * ออกเลขรันถัดไปของ "เลขที่ใบแจ้งหนี้" และ "หมายเลขสั่งซื้อ" แบบไม่ซ้ำกับที่มีในฐานข้อมูล
+     * เริ่มจาก (เลขมากสุดที่มีอยู่ + 1) แล้วข้ามหมายเลขที่มีอยู่แล้วไปจนกว่าจะเจอเลขว่าง
+     * รูปแบบ: เลข 3 หลักเติมศูนย์หน้า (001, 002, ...)
+     */
+    @Transactional(readOnly = true)
+    public NextNumbersResponse nextNumbers() {
+        return new NextNumbersResponse(
+                nextRunning(repository.findAllInvoiceNos()),
+                nextRunning(repository.findAllPoNos()));
+    }
+
+    private static String nextRunning(List<String> existing) {
+        Set<String> used = new HashSet<>();
+        long max = 0;
+        for (String s : existing) {
+            if (s == null) continue;
+            String t = s.trim();
+            if (t.isEmpty()) continue;
+            used.add(t);
+            if (t.matches("\\d{1,18}")) {
+                try {
+                    max = Math.max(max, Long.parseLong(t));
+                } catch (NumberFormatException ignored) {
+                    // เลขยาวเกิน long — ข้ามไป ไม่เอามาคิดค่า max
+                }
+            }
+        }
+        long n = max + 1;
+        // ข้ามเลขที่มีอยู่แล้ว (ทั้งแบบเติมศูนย์และไม่เติม) จนเจอเลขที่ยังไม่ถูกใช้
+        while (used.contains(fmt(n)) || used.contains(String.valueOf(n))) {
+            n++;
+        }
+        return fmt(n);
+    }
+
+    private static String fmt(long n) {
+        return String.format("%03d", n);
     }
 
     @Transactional

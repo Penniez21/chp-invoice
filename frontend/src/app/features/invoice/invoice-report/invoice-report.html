@@ -3,18 +3,20 @@
   <!-- stepper + actions (ซ่อนตอนพิมพ์) -->
   <div class="mb-6 print:hidden">
     <div class="card mb-4 px-4 py-4"><app-stepper [steps]="steps" [current]="1" /></div>
-    <div class="flex items-center justify-between gap-3">
+    <!-- มือถือ: ปุ่มนำทางแถวบน · พิมพ์/PDF เต็มความกว้างแถวล่าง (เดิมเรียงแถวเดียว ล้นจอจนปุ่ม PDF หลุดขอบ)
+         ซ่อน "แดชบอร์ด" บนมือถือ (มีในเมนู ☰ แล้ว) — ต้องใช้ ! เพราะ .btn อยู่นอก layer จึงชนะ utility ปกติ -->
+    <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex gap-2">
         @if (invoice(); as inv) {
           <a [routerLink]="['/invoices', inv.id, 'edit']" class="btn btn--ghost">← แก้ไขข้อมูล</a>
         }
         <a routerLink="/invoices/new" class="btn btn--ghost">＋ ใบใหม่</a>
       </div>
-      <div class="flex items-center gap-2">
-        <a routerLink="/dashboard" class="btn btn--ghost">แดชบอร์ด</a>
+      <div class="flex w-full items-center gap-2 sm:w-auto">
+        <a routerLink="/dashboard" class="btn btn--ghost max-sm:!hidden">แดชบอร์ด</a>
         @if (invoice()) {
-          <button class="btn btn--ghost" (click)="openPreview()">🖨️ พิมพ์</button>
-          <button class="btn btn--primary" [disabled]="pdfLoading()" (click)="downloadPdf()">
+          <button class="btn btn--ghost flex-1 sm:flex-none" (click)="openPreview()">🖨️ พิมพ์</button>
+          <button class="btn btn--primary flex-1 sm:flex-none" [disabled]="pdfLoading()" (click)="downloadPdf()">
             @if (pdfLoading()) { <span class="spinner spinner--sm" style="--color-primary:#fff"></span> กำลังสร้าง… }
             @else { ⬇ ดาวน์โหลด PDF }
           </button>
@@ -22,6 +24,58 @@
       </div>
     </div>
   </div>
+
+  <!-- แจ้งเตือนข้อมูลที่ยังไม่ถูกบันทึก — แต่ละแถวขึ้นเฉพาะรายการที่ยังไม่มีในฐานข้อมูล
+       บันทึกแล้วแถวนั้นหายเอง และข้อมูลจะไปโผล่ใน dropdown "เลือกจากที่บันทึกไว้" ของหน้าสร้างใบ -->
+  @if (invoice(); as inv) {
+    <div class="mb-6 space-y-2 print:hidden">
+
+      @if (!issuerSaved()) {
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+          <div class="flex items-start gap-2 text-sm">
+            <span class="leading-5">⚠️</span>
+            <span class="text-amber-800">
+              ผู้ออก “<span class="font-semibold">{{ inv.issuerName }}</span>” ยังไม่ถูกบันทึกในระบบ —
+              หากต้องการใช้ซ้ำในใบถัดไป กดปุ่ม <span class="font-semibold">บันทึกผู้ออก</span>
+            </span>
+          </div>
+          <button class="btn btn--primary btn--sm shrink-0" [disabled]="savingIssuer()" (click)="saveIssuer()">
+            @if (savingIssuer()) { <span class="spinner spinner--sm" style="--color-primary:#fff"></span> กำลังบันทึก… }
+            @else { ＋ บันทึกผู้ออก }
+          </button>
+        </div>
+      }
+
+      @if (!recipientSaved()) {
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+          <div class="flex items-start gap-2 text-sm">
+            <span class="leading-5">⚠️</span>
+            <span class="text-amber-800">
+              ผู้รับ “<span class="font-semibold">{{ inv.recipientName }}</span>” ยังไม่ถูกบันทึกในระบบ —
+              หากต้องการใช้ซ้ำในใบถัดไป กดปุ่ม <span class="font-semibold">บันทึกผู้รับ</span>
+            </span>
+          </div>
+          <button class="btn btn--primary btn--sm shrink-0" [disabled]="savingRecipient()" (click)="saveRecipient()">
+            @if (savingRecipient()) { <span class="spinner spinner--sm" style="--color-primary:#fff"></span> กำลังบันทึก… }
+            @else { ＋ บันทึกผู้รับ }
+          </button>
+        </div>
+      }
+
+      @if (!hasAnyBank()) {
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+          <div class="flex items-start gap-2 text-sm">
+            <span class="leading-5">⚠️</span>
+            <span class="text-amber-800">
+              ยังไม่มีบัญชีธนาคารในระบบ — เพิ่มบัญชีเพื่อให้แสดงในเอกสารใบแจ้งหนี้
+            </span>
+          </div>
+          <a routerLink="/settings/banks" class="btn btn--ghost btn--sm shrink-0">＋ เพิ่มบัญชีธนาคาร</a>
+        </div>
+      }
+
+    </div>
+  }
 
   @if (loading()) {
     <app-spinner label="กำลังโหลดใบแจ้งหนี้…" />
@@ -33,7 +87,7 @@
          ประกาศเป็น ng-template แล้ววาง 2 ครั้ง (ต้นฉบับ + สำเนา) จะได้ไม่ต้องเขียนมาร์กอัปซ้ำ -->
     <ng-template #docTpl let-label="label" let-docId="docId" let-extraClass="extraClass">
     <div [id]="docId" [ngClass]="extraClass"
-         class="animate-in invoice-doc mx-auto flex aspect-[210/297] w-full flex-col rounded-lg border border-slate-200 bg-white p-7 text-[12px] leading-5 text-slate-700 shadow-sm sm:p-9 print:border-0 print:shadow-none">
+         class="animate-in invoice-doc mx-auto flex aspect-[210/297] w-full flex-col rounded-lg border border-slate-200 bg-white p-9 text-[12px] leading-5 text-slate-700 shadow-sm print:border-0 print:shadow-none">
 
       <!-- header (ไม่มีโลโก้ — เว้นระยะให้ (ต้นฉบับ)/(สำเนา) ไม่ทับหัวเรื่องภาษาไทย) -->
       <div class="flex items-start justify-end">
@@ -180,11 +234,14 @@
     </div>
     </ng-template>
 
-    <!-- หน้า 1 : ต้นฉบับ (ป้ายผูกกับ docLabel เพราะตอนสร้าง PDF จะสลับเป็น "สำเนา" ชั่วคราว) -->
-    <ng-container *ngTemplateOutlet="docTpl; context: { label: docLabel(), docId: 'invoice-doc', extraClass: '' }" />
+    <!-- จอแคบกว่า A4: ล็อกกว้าง 794px แล้วย่อทั้งก้อนด้วย zoom (ดู docZoom ใน .ts) — ตอนพิมพ์ CSS คืนเป็น 100% -->
+    <div class="doc-fit" [class.doc-fit--scaled]="docZoom() < 1" [style.zoom]="docZoom() < 1 ? docZoom() : null">
+      <!-- หน้า 1 : ต้นฉบับ (ป้ายผูกกับ docLabel เพราะตอนสร้าง PDF จะสลับเป็น "สำเนา" ชั่วคราว) -->
+      <ng-container *ngTemplateOutlet="docTpl; context: { label: docLabel(), docId: 'invoice-doc', extraClass: '' }" />
 
-    <!-- หน้า 2 : สำเนา — ซ่อนบนจอ โผล่เฉพาะตอนสั่งพิมพ์ และขึ้นหน้ากระดาษใหม่เสมอ -->
-    <ng-container *ngTemplateOutlet="docTpl; context: { label: 'สำเนา', docId: 'invoice-doc-copy', extraClass: 'hidden break-before-page print:flex' }" />
+      <!-- หน้า 2 : สำเนา — ซ่อนบนจอ โผล่เฉพาะตอนสั่งพิมพ์ และขึ้นหน้ากระดาษใหม่เสมอ -->
+      <ng-container *ngTemplateOutlet="docTpl; context: { label: 'สำเนา', docId: 'invoice-doc-copy', extraClass: 'hidden break-before-page print:flex' }" />
+    </div>
 
     <p class="mt-4 text-center text-xs text-ink-soft print:hidden">
       * "ดาวน์โหลด PDF" และ "พิมพ์" ได้ 2 หน้าเหมือนกัน — หน้าแรกเป็นต้นฉบับ หน้าที่สองเป็นสำเนา
@@ -195,7 +252,8 @@
     @if (previewOpen()) {
       <div class="preview animate-in print:hidden">
         <div class="preview__bar">
-          <div class="min-w-0">
+          <!-- มือถือ: ปุ่มควบคุมกินเกือบเต็มแถบ ชื่อหัวเรื่องจะเหลือที่นิดเดียวจนตัดบรรทัดทีละคำ — ซ่อนไป -->
+          <div class="min-w-0 max-sm:hidden">
             <p class="text-sm font-semibold text-ink">ตัวอย่างก่อนพิมพ์</p>
             <p class="text-xs text-ink-soft">2 หน้า · ต้นฉบับ + สำเนา</p>
           </div>

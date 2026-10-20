@@ -13,6 +13,7 @@ import { thaiPhone, thaiTaxId } from '../../../shared/validators';
 import { ToastService } from '../../../shared/toast/toast.service';
 import { apiErrorMessage } from '../../../core/api-error';
 import { Recipient, RecipientService } from '../../settings/recipient.service';
+import { Issuer, IssuerService } from '../../settings/issuer.service';
 import { Combobox, ComboOption } from '../../../shared/combobox/combobox';
 
 @Component({
@@ -26,6 +27,7 @@ export class InvoiceForm implements OnInit {
   private draftService = inject(InvoiceDraftService);
   private router = inject(Router);
   private recipientService = inject(RecipientService);
+  private issuerService = inject(IssuerService);
   private toast = inject(ToastService);
 
   /** ผู้รับที่บันทึกไว้ใน "ตั้งค่า → ผู้รับ" สำหรับเลือกเติมอัตโนมัติ */
@@ -40,6 +42,17 @@ export class InvoiceForm implements OnInit {
       value: String(r.id),
       label: r.name,
       hint: [r.taxId, r.phone].filter(Boolean).join(' · '),
+    }))
+  );
+
+  /** ผู้ออกที่บันทึกไว้ใน "ตั้งค่า → ผู้ออก" สำหรับเลือกเติมอัตโนมัติ */
+  protected readonly savedIssuers = signal<Issuer[]>([]);
+  protected readonly pickedIssuerId = signal('');
+  protected readonly issuerOptions = computed<ComboOption[]>(() =>
+    this.savedIssuers().map((i) => ({
+      value: String(i.id),
+      label: i.name,
+      hint: [i.taxId, i.phone].filter(Boolean).join(' · '),
     }))
   );
 
@@ -100,6 +113,7 @@ export class InvoiceForm implements OnInit {
     } else {
       const draft = this.draftService.get();
       if (draft) this.restore(draft);
+      this.autoFillNumbers(); // เติมเลขรันถัดไปให้ช่องที่ยังว่าง
     }
     // เก็บ draft เฉพาะโหมดสร้างใหม่ (คงข้อมูลเมื่อกดกลับ) — โหมดแก้ไขโหลดจาก DB จึงไม่แตะ draft
     this.form.valueChanges.subscribe(() => {
@@ -111,6 +125,44 @@ export class InvoiceForm implements OnInit {
       next: (list) => this.savedRecipients.set(list),
       error: () => this.savedRecipients.set([]),
     });
+
+    // รายชื่อผู้ออกที่บันทึกไว้ — เช่นเดียวกัน ล้มเหลวก็ยังกรอกเองได้
+    this.issuerService.list().subscribe({
+      next: (list) => this.savedIssuers.set(list),
+      error: () => this.savedIssuers.set([]),
+    });
+  }
+
+  /**
+   * เติม "เลขที่ใบแจ้งหนี้" และ "หมายเลขสั่งซื้อ" เป็นเลขรันถัดไปที่ยังไม่ซ้ำในฐานข้อมูล
+   * เติมเฉพาะช่องที่ยังว่าง (ไม่ทับค่าที่ผู้ใช้กรอก/ค่าจาก draft) และยังแก้เองได้
+   */
+  private autoFillNumbers(): void {
+    this.invoiceService.nextNumbers().subscribe({
+      next: (n) => {
+        const patch: Partial<{ invoiceNo: string; poNo: string }> = {};
+        if (!this.form.controls.invoiceNo.value.trim()) patch.invoiceNo = n.invoiceNo;
+        if (!this.form.controls.poNo.value.trim()) patch.poNo = n.poNo;
+        if (Object.keys(patch).length) this.form.patchValue(patch);
+      },
+      error: () => {}, // ล้มเหลวก็ไม่เป็นไร ยังกรอกเองได้
+    });
+  }
+
+  /** เลือกผู้ออกจาก dropdown → เติมข้อมูลลงฟอร์ม (ยังแก้ทับได้ตามปกติ) */
+  protected applySavedIssuer(idValue: string): void {
+    this.pickedIssuerId.set(idValue);
+    if (!idValue) return;
+    const i = this.savedIssuers().find((x) => String(x.id) === idValue);
+    if (!i) return;
+    this.form.patchValue({
+      issuerName: i.name,
+      issuerTaxId: i.taxId ?? '',
+      issuerAddress: i.address ?? '',
+      issuerEmail: i.email ?? '',
+      issuerPhone: i.phone ?? '',
+    });
+    this.toast.info('เติมข้อมูลผู้ออกแล้ว', i.name);
   }
 
   /** เลือกผู้รับจาก dropdown → เติมข้อมูลลงฟอร์ม (ยังแก้ทับได้ตามปกติ) */

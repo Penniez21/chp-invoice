@@ -32,6 +32,7 @@ export class Shell {
     { label: 'แดชบอร์ด', icon: '▚', link: '/dashboard', exact: true },
     { label: 'สร้างใบแจ้งหนี้', icon: '✎', link: '/invoices/new' },
     { label: 'บัญชีธนาคาร', icon: '𝗕', link: '/settings/banks' },
+    { label: 'ผู้ออก', icon: '☻', link: '/settings/issuers' },
     { label: 'ผู้รับ', icon: '☺', link: '/settings/recipients' },
     { label: 'บัญชีผู้ใช้', icon: '⚙', link: '/settings/account' },
   ];

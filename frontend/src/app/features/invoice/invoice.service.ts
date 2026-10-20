@@ -58,6 +58,11 @@ export class InvoiceService {
     return this.http.get<InvoiceResponse[]>(this.base);
   }
 
+  /** เลขรันถัดไป (เลขที่ใบแจ้งหนี้ + หมายเลขสั่งซื้อ) ที่ยังไม่ซ้ำในฐานข้อมูล */
+  nextNumbers(): Observable<{ invoiceNo: string; poNo: string }> {
+    return this.http.get<{ invoiceNo: string; poNo: string }>(`${this.base}/next-numbers`);
+  }
+
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/${id}`);
   }

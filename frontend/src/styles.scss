@@ -147,6 +147,12 @@ body {
     box-shadow: 0 6px 18px -6px color-mix(in srgb, #ef4444 70%, transparent);
     &:hover:not(:disabled) { box-shadow: 0 10px 26px -8px color-mix(in srgb, #ef4444 85%, transparent); }
   }
+  /* ปุ่มขนาดเล็ก — ใช้ในแถบแจ้งเตือน/แถวที่พื้นที่จำกัด */
+  &--sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.82rem;
+    border-radius: 9px;
+  }
 }
 
 /* ---------- Combobox (dropdown ที่พิมพ์ค้นหาได้) ---------- */
@@ -547,6 +553,11 @@ body {
     flex-shrink: 0;
   }
 }
+
+/* ---------- เอกสารบนจอแคบ (มือถือ) ----------
+   ล็อกเอกสารไว้กว้างเท่า A4 แล้วให้ zoom (ตั้งจาก .ts) ย่อทั้งก้อนให้พอดีจอ
+   ใช้ zoom ไม่ใช่ transform ด้วยเหตุผลเดียวกับ .preview__stage — ความสูงที่จองไว้ย่อตามจริง */
+.doc-fit--scaled { width: 794px; }
 
 /* ---------- กล่องยืนยัน (แทน confirm() ของเบราว์เซอร์) ---------- */
 .confirm {
@@ -976,6 +987,9 @@ button.chip--off:hover { border-color: var(--color-primary); color: var(--color-
   /* เอกสารเต็มหน้า A4 พอดี — ระบุความสูงเป็น mm ตรง ๆ (ไม่พึ่ง aspect-ratio)
      เพราะ 297mm แปลงเป็น px ได้ 1122.52 แต่ aspect-ratio ปัดขึ้นเป็น 1123px
      เศษ 0.5px นั้นทำให้เกินหน้าและดันเนื้อหาส่วนท้ายไปหน้าที่ 2 ได้ */
+  /* ย่อบนจอมือถือ ไม่ต้องย่อตอนพิมพ์ — !important ชนะ zoom ที่ผูกเป็น inline style */
+  .doc-fit { zoom: 1 !important; width: auto !important; }
+
   .invoice-doc {
     width: 210mm !important;
     height: 297mm !important;

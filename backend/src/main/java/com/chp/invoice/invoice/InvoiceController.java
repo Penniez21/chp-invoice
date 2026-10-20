@@ -2,6 +2,7 @@ package com.chp.invoice.invoice;
 
 import com.chp.invoice.invoice.dto.InvoiceRequest;
 import com.chp.invoice.invoice.dto.InvoiceResponse;
+import com.chp.invoice.invoice.dto.NextNumbersResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +23,12 @@ public class InvoiceController {
     @GetMapping
     public List<InvoiceResponse> list() {
         return service.findAll().stream().map(InvoiceResponse::from).toList();
+    }
+
+    /** เลขรันถัดไปที่ยังไม่ซ้ำ — ใช้เติมหน้าสร้างใบแจ้งหนี้อัตโนมัติ (ต้องมาก่อน /{id}) */
+    @GetMapping("/next-numbers")
+    public NextNumbersResponse nextNumbers() {
+        return service.nextNumbers();
     }
 
     @GetMapping("/{id}")

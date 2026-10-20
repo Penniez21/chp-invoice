@@ -59,6 +59,17 @@
             <h2 class="text-base font-semibold text-ink">ผู้ออก</h2>
           </div>
           <div class="space-y-4">
+            <!-- เลือกผู้ออกที่บันทึกไว้ → เติมข้อมูลให้อัตโนมัติ (ไม่มีในรายการก็พิมพ์เองด้านล่างได้) -->
+            @if (savedIssuers().length) {
+              <div class="block">
+                <span class="lbl">เลือกจากผู้ออกที่บันทึกไว้</span>
+                <app-combobox [options]="issuerOptions()" [value]="pickedIssuerId()"
+                              placeholder="พิมพ์ค้นหาชื่อ / เลขภาษี / เบอร์โทร…"
+                              emptyText="ไม่พบผู้ออกที่ค้นหา — กรอกเองด้านล่างได้"
+                              (valueChange)="applySavedIssuer($event)" />
+              </div>
+            }
+
             <label class="block">
               <span class="lbl">ชื่อ <span class="text-red-500">*</span></span>
               <input formControlName="issuerName" class="inp" />
@@ -147,34 +158,45 @@
           <button type="button" class="btn btn--secondary" (click)="addItem()">+ เพิ่มรายการ</button>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-[640px] text-sm">
-            <thead>
-              <!-- เยื้องหัวตารางให้ตรงกับ "ตัวหนังสือใน input" ไม่ใช่ขอบช่อง
-                   (= pr-2 ของ td + padding ในตัว input + เส้นขอบ = 21.6px / ซ้าย 13.8px) -->
-              <tr class="border-b border-line text-left text-ink-soft">
-                <th class="pb-2 pl-[13.8px] font-medium">คำอธิบาย</th>
-                <th class="w-24 pb-2 pr-[21.6px] text-right font-medium">ปริมาณ</th>
-                <th class="w-36 pb-2 pr-[21.6px] text-right font-medium">ราคาต่อหน่วย</th>
-                <th class="w-36 pb-2 pr-2 text-right font-medium">ทั้งหมด</th>
-                <th class="w-10 pb-2"></th>
-              </tr>
-            </thead>
-            <tbody formArrayName="items">
-              @for (item of items.controls; track item; let i = $index) {
-                <tr [formGroupName]="i" class="border-b border-line/60 align-middle">
-                  <td class="py-2 pr-2"><input formControlName="description" class="inp" placeholder="เช่น งานรื้อถอน" /></td>
-                  <td class="py-2 pr-2"><input type="number" min="0" step="1" formControlName="quantity" class="inp text-right" /></td>
-                  <td class="py-2 pr-2"><input type="number" min="0" step="0.01" formControlName="unitPrice" class="inp text-right" /></td>
-                  <td class="whitespace-nowrap py-2 pr-2 text-right font-semibold text-ink">฿ {{ formatMoney(lineTotal(i)) }}</td>
-                  <td class="py-2 text-center">
-                    <button type="button" (click)="removeItem(i)" [disabled]="items.length === 1"
-                            class="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition hover:bg-red-50 hover:text-red-600 disabled:opacity-30" title="ลบ">✕</button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
+        <!-- ใช้ grid แทนตาราง: จอกว้างเป็นแถวเดียว 5 ช่อง / มือถือเป็นการ์ดซ้อน
+             (คำอธิบายเต็มบรรทัด · ปริมาณ+ราคาคู่กัน · ยอดรวมบรรทัดล่าง) ไม่ต้องเลื่อนข้าง
+             ปุ่มลบอยู่ถัดจากคำอธิบายใน DOM (มือถือจะได้อยู่มุมขวาบน) แล้วใช้ order-last ดันไปท้ายแถวบนจอกว้าง -->
+        <div class="text-sm">
+          <!-- หัวตาราง — เยื้องให้ตรง "ตัวหนังสือใน input" (padding ในช่อง 12.8px + เส้นขอบ 1px = 13.8px) -->
+          <div class="hidden grid-cols-[minmax(0,1fr)_6rem_9rem_9rem_2.5rem] gap-2 border-b border-line pb-2 text-ink-soft sm:grid">
+            <span class="pl-[13.8px] font-medium">คำอธิบาย</span>
+            <span class="pr-[13.8px] text-right font-medium">ปริมาณ</span>
+            <span class="pr-[13.8px] text-right font-medium">ราคาต่อหน่วย</span>
+            <span class="text-right font-medium">ทั้งหมด</span>
+            <span></span>
+          </div>
+
+          <div formArrayName="items">
+            @for (item of items.controls; track item; let i = $index) {
+              <div [formGroupName]="i"
+                   class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-x-2 gap-y-2.5 border-b border-line/60 py-4 sm:grid-cols-[minmax(0,1fr)_6rem_9rem_9rem_2.5rem] sm:items-center sm:gap-y-0 sm:py-2">
+                <label class="col-span-2 block sm:col-span-1">
+                  <!-- sm:!hidden — .lbl อยู่นอก layer จึงชนะ utility ปกติ ต้องใช้ ! -->
+                  <span class="lbl sm:!hidden">รายการที่ {{ i + 1 }}</span>
+                  <input formControlName="description" class="inp" placeholder="เช่น งานรื้อถอน" />
+                </label>
+                <button type="button" (click)="removeItem(i)" [disabled]="items.length === 1"
+                        class="grid h-9 w-9 place-items-center self-end rounded-lg text-ink-soft transition hover:bg-red-50 hover:text-red-600 disabled:opacity-30 sm:order-last sm:h-8 sm:w-8 sm:justify-self-center" title="ลบ">✕</button>
+                <label class="block">
+                  <span class="lbl sm:!hidden">ปริมาณ</span>
+                  <input type="number" min="0" step="1" formControlName="quantity" class="inp text-right" />
+                </label>
+                <label class="block">
+                  <span class="lbl sm:!hidden">ราคาต่อหน่วย</span>
+                  <input type="number" min="0" step="0.01" formControlName="unitPrice" class="inp text-right" />
+                </label>
+                <div class="col-span-3 flex items-baseline justify-between sm:col-span-1 sm:block sm:text-right">
+                  <span class="text-ink-soft sm:hidden">รวม</span>
+                  <span class="whitespace-nowrap font-semibold text-ink">฿ {{ formatMoney(lineTotal(i)) }}</span>
+                </div>
+              </div>
+            }
+          </div>
         </div>
       </section>
 

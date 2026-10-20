@@ -37,6 +37,13 @@ export const routes: Routes = [
           import('./features/settings/bank-settings/bank-settings').then((m) => m.BankSettings),
       },
       {
+        path: 'settings/issuers',
+        loadComponent: () =>
+          import('./features/settings/issuer-settings/issuer-settings').then(
+            (m) => m.IssuerSettings
+          ),
+      },
+      {
         path: 'settings/recipients',
         loadComponent: () =>
           import('./features/settings/recipient-settings/recipient-settings').then(

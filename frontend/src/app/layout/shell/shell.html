@@ -66,8 +66,8 @@
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3">
-        <!-- theme switcher -->
-        <div class="flex items-center gap-1 rounded-full border border-line bg-surface p-1">
+        <!-- theme switcher — บนมือถือย้ายไปอยู่ในเมนูผู้ใช้ ให้ชื่อระบบมีที่พอไม่โดนตัดเหลือ "ระบบ…" -->
+        <div class="hidden items-center gap-1 rounded-full border border-line bg-surface p-1 sm:flex">
           @for (t of themes; track t.mode) {
             <button (click)="theme.set(t.mode)" [title]="t.title"
                     class="grid h-7 w-7 place-items-center rounded-full text-sm transition-all"
@@ -91,6 +91,18 @@
               <div class="border-b border-line px-4 py-3">
                 <p class="text-xs text-ink-soft">เข้าสู่ระบบเป็น</p>
                 <p class="truncate text-sm font-semibold text-ink">{{ username() }}</p>
+              </div>
+              <div class="flex items-center justify-between gap-2 border-b border-line px-4 py-2.5 sm:hidden">
+                <span class="text-xs text-ink-soft">ธีม</span>
+                <div class="flex items-center gap-1 rounded-full border border-line bg-surface p-1">
+                  @for (t of themes; track t.mode) {
+                    <button (click)="theme.set(t.mode)" [title]="t.title"
+                            class="grid h-7 w-7 place-items-center rounded-full text-sm transition-all"
+                            [class]="theme.mode() === t.mode ? 'bg-primary text-white shadow' : 'text-ink-soft hover:text-ink'">
+                      {{ t.icon }}
+                    </button>
+                  }
+                </div>
               </div>
               <a routerLink="/settings/account" (click)="userMenuOpen.set(false)"
                  class="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-ink transition hover:bg-primary-soft">

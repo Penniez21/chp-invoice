@@ -72,12 +72,30 @@
       @if (!filtered().length) {
         <div class="p-10 text-center text-sm text-ink-soft">ไม่พบผู้รับที่ตรงกับคำค้น</div>
       } @else {
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-[720px] text-sm">
+        <!-- มือถือ: การ์ดทีละราย — ตารางกว้างเกินจอ ปุ่มแก้ไข/ลบหลุดไปขวาสุด -->
+        <ul class="divide-y divide-line/60 md:hidden">
+          @for (r of pager.items(); track r.id) {
+            <li class="flex items-start gap-2 px-5 py-4">
+              <div class="min-w-0 flex-1 space-y-1">
+                <p class="text-sm font-semibold text-ink">{{ r.name }}</p>
+                @if (r.taxId) { <p class="text-xs text-ink-soft">เลขภาษี {{ r.taxId }}</p> }
+                @if (r.phone) { <p class="text-xs text-ink-soft">โทร {{ r.phone }}</p> }
+                @if (r.address) { <p class="text-xs leading-relaxed text-ink-soft">{{ r.address }}</p> }
+              </div>
+              <div class="-mr-2 flex shrink-0">
+                <button type="button" class="icon-btn" title="แก้ไข" (click)="openEdit(r)">✎</button>
+                <button type="button" class="icon-btn icon-btn--danger" title="ลบ" (click)="remove(r)">🗑</button>
+              </div>
+            </li>
+          }
+        </ul>
+
+        <!-- แท็บเล็ตขึ้นไป: รวมเลขภาษีไว้ใต้ชื่อ ให้พอดีจอ 700px ไม่ต้องเลื่อนข้าง -->
+        <div class="hidden overflow-x-auto md:block">
+          <table class="w-full min-w-[600px] text-sm">
             <thead>
               <tr class="border-b border-line text-left text-ink-soft">
                 <th class="px-5 py-3 font-medium">ชื่อ / บริษัท</th>
-                <th class="px-5 py-3 font-medium">เลขภาษี</th>
                 <th class="px-5 py-3 font-medium">เบอร์โทร</th>
                 <th class="px-5 py-3 font-medium">ที่อยู่</th>
                 <th class="px-5 py-3 text-center font-medium">จัดการ</th>
@@ -86,10 +104,12 @@
             <tbody>
               @for (r of pager.items(); track r.id) {
                 <tr class="border-b border-line/60 align-middle">
-                  <td class="px-5 py-3 font-medium text-ink">{{ r.name }}</td>
-                  <td class="px-5 py-3 text-ink-soft">{{ r.taxId || '-' }}</td>
-                  <td class="px-5 py-3 text-ink-soft">{{ r.phone || '-' }}</td>
-                  <td class="max-w-[22rem] px-5 py-3 text-ink-soft">{{ r.address || '-' }}</td>
+                  <td class="px-5 py-3">
+                    <p class="font-medium text-ink">{{ r.name }}</p>
+                    <p class="whitespace-nowrap text-xs text-ink-soft">เลขภาษี {{ r.taxId || '-' }}</p>
+                  </td>
+                  <td class="whitespace-nowrap px-5 py-3 text-ink-soft">{{ r.phone || '-' }}</td>
+                  <td class="max-w-[20rem] px-5 py-3 text-ink-soft">{{ r.address || '-' }}</td>
                   <td class="whitespace-nowrap px-5 py-3 text-center">
                     <button type="button" class="icon-btn" title="แก้ไข" (click)="openEdit(r)">✎</button>
                     <button type="button" class="icon-btn icon-btn--danger" title="ลบ" (click)="remove(r)">🗑</button>
