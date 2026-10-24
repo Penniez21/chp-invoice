@@ -15,6 +15,7 @@ import { apiErrorMessage } from '../../../core/api-error';
 import { Recipient, RecipientService } from '../../settings/recipient.service';
 import { Issuer, IssuerService } from '../../settings/issuer.service';
 import { Combobox, ComboOption } from '../../../shared/combobox/combobox';
+import { baht, lineSatang, percentOf } from '../../../shared/money';
 
 @Component({
   selector: 'app-invoice-form',
@@ -93,18 +94,14 @@ export class InvoiceForm implements OnInit {
 
   // คิดยอดเป็นจำนวนเต็มสตางค์ตามกฎเดียวกับ backend (InvoiceService.apply) เพื่อให้ตรงกับที่บันทึก/พิมพ์เสมอ:
   // แต่ละบรรทัดปัด 2 ตำแหน่ง HALF_UP → รวม → ภาษีหัก = ยอดรวม × อัตรา / 100 ปัด HALF_UP → สุทธิ = ยอดรวม − ภาษี
-  // (ใช้ float ตรงๆ ไม่ได้ เช่น 112.545 ใน float คือ 112.5449999… จะปัดเป็น 112.54 แต่ backend ได้ 112.55)
   private readonly subTotalSatang = computed(() =>
-    (this.value().items ?? []).reduce((s, it) => s + this.lineSatang(it?.quantity, it?.unitPrice), 0n)
+    (this.value().items ?? []).reduce((s, it) => s + lineSatang(it?.quantity, it?.unitPrice), 0n)
   );
-  private readonly whtSatang = computed(() => {
-    const rate = this.decimal(this.value().whtRate);
-    return this.toSatang(this.subTotalSatang() * rate.units, 2 + rate.scale + 2); // +2 = หาร 100
-  });
+  private readonly whtSatang = computed(() => percentOf(this.subTotalSatang(), this.value().whtRate));
 
-  protected readonly subTotal = computed(() => this.baht(this.subTotalSatang()));
-  protected readonly whtAmount = computed(() => this.baht(this.whtSatang()));
-  protected readonly netTotal = computed(() => this.baht(this.subTotalSatang() - this.whtSatang()));
+  protected readonly subTotal = computed(() => baht(this.subTotalSatang()));
+  protected readonly whtAmount = computed(() => baht(this.whtSatang()));
+  protected readonly netTotal = computed(() => baht(this.subTotalSatang() - this.whtSatang()));
 
   ngOnInit(): void {
     const idVal = this.id();
@@ -186,7 +183,7 @@ export class InvoiceForm implements OnInit {
 
   protected lineTotal(index: number): number {
     const it = this.items.at(index).getRawValue();
-    return this.baht(this.lineSatang(it.quantity, it.unitPrice));
+    return baht(lineSatang(it.quantity, it.unitPrice));
   }
 
   protected newItem(desc = '', qty = 1, price = 0) {
@@ -304,39 +301,6 @@ export class InvoiceForm implements OnInit {
   private n(v: unknown): number {
     const num = Number(v);
     return isFinite(num) ? num : 0;
-  }
-
-  /** ยอดบรรทัด = จำนวน × ราคาต่อหน่วย ปัดเป็นสตางค์ */
-  private lineSatang(qty: unknown, price: unknown): bigint {
-    const q = this.decimal(qty);
-    const p = this.decimal(price);
-    return this.toSatang(q.units * p.units, q.scale + p.scale);
-  }
-
-  /**
-   * ตัวเลขจากฟอร์ม → ทศนิยมแบบแม่นตรง units × 10^-scale (เช่น 250.5 → 2505n, 1)
-   * อ่านจาก String(num) ซึ่งเป็นข้อความเดียวกับที่ JSON ส่งไปให้ BigDecimal ฝั่ง backend
-   */
-  private decimal(v: unknown): { units: bigint; scale: number } {
-    const m = /^(-?\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/i.exec(String(this.n(v)));
-    if (!m) return { units: 0n, scale: 0 };
-    const [, int, frac = '', exp = '0'] = m;
-    const scale = frac.length - Number(exp);
-    const units = BigInt(int + frac);
-    return scale >= 0 ? { units, scale } : { units: units * 10n ** BigInt(-scale), scale: 0 };
-  }
-
-  /** units × 10^-scale → สตางค์ ปัด HALF_UP (เท่ากันพอดีปัดออกจากศูนย์) แบบ BigDecimal.setScale(2, HALF_UP) */
-  private toSatang(units: bigint, scale: number): bigint {
-    if (scale <= 2) return units * 10n ** BigInt(2 - scale);
-    const div = 10n ** BigInt(scale - 2);
-    const q = units / div; // bigint หารแล้วตัดเศษเข้าหาศูนย์
-    const r = units % div;
-    return (r < 0n ? -r : r) * 2n >= div ? q + (units < 0n ? -1n : 1n) : q;
-  }
-
-  private baht(satang: bigint): number {
-    return Number(satang) / 100;
   }
 
   private today(): string {
