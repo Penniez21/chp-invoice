@@ -17,18 +17,54 @@
       }
     </div>
 
-    <!-- nav -->
-    <nav class="flex-1 space-y-1 px-3 py-4">
-      @for (item of nav; track item.link) {
-        <a [routerLink]="item.link"
-           routerLinkActive="nav-active"
-           [routerLinkActiveOptions]="{ exact: !!item.exact }"
-           (click)="mobileOpen.set(false)"
-           class="nav-link group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-soft transition-all hover:bg-primary-soft hover:text-ink"
-           [class.justify-center]="collapsed()">
-          <span class="grid h-6 w-6 place-items-center text-lg leading-none">{{ item.icon }}</span>
-          @if (!collapsed()) { <span>{{ item.label }}</span> }
-        </a>
+    <!-- nav — เมนูหลัก + กลุ่มที่มีเมนูย่อย (ใบแจ้งหนี้ / ใบเสนอราคา)
+         min-h-0 + overflow-y-auto: เมนูกางครบเกินความสูงจอเตี้ย ๆ ได้ ให้เลื่อนในแถบแทนการล้น -->
+    <nav class="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
+      @for (entry of nav; track entry.label) {
+        @if (entry.kind === 'link') {
+          <a [routerLink]="entry.link"
+             routerLinkActive="nav-active"
+             [routerLinkActiveOptions]="{ exact: !!entry.exact }"
+             (click)="mobileOpen.set(false)"
+             class="nav-link group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-soft transition-all hover:bg-primary-soft hover:text-ink"
+             [class.justify-center]="collapsed()">
+            <span class="grid h-6 w-6 place-items-center text-lg leading-none">{{ entry.icon }}</span>
+            @if (!collapsed()) { <span>{{ entry.label }}</span> }
+          </a>
+        } @else {
+          <div>
+            <!-- หัวกลุ่ม:
+                 กางอยู่ = ไฮไลต์อ่อน (.nav-open) ให้เห็นว่ากลุ่มไหนเปิดอยู่
+                 พับอยู่ แต่หน้าปัจจุบันอยู่ในกลุ่มนี้ = ไฮไลต์เต็ม (.nav-active) เพราะเมนูย่อยที่เลือกถูกซ่อน -->
+            <button type="button" (click)="toggleGroup(entry.key)"
+                    [attr.aria-expanded]="!collapsed() && isOpen(entry.key)"
+                    [title]="collapsed() ? entry.label : ''"
+                    class="nav-link group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-soft transition-all hover:bg-primary-soft hover:text-ink"
+                    [class.justify-center]="collapsed()"
+                    [class.nav-open]="!collapsed() && isOpen(entry.key)"
+                    [class.nav-active]="activeGroup() === entry.key && (collapsed() || !isOpen(entry.key))">
+              <span class="grid h-6 w-6 place-items-center text-lg leading-none">{{ entry.icon }}</span>
+              @if (!collapsed()) {
+                <span class="flex-1 text-left">{{ entry.label }}</span>
+                <span class="text-xs text-ink-soft transition-transform duration-200" [class.rotate-180]="isOpen(entry.key)">▾</span>
+              }
+            </button>
+            @if (!collapsed() && isOpen(entry.key)) {
+              <div class="animate-in ml-[1.35rem] mt-0.5 space-y-0.5 border-l border-line pl-2.5">
+                @for (child of entry.children; track child.link) {
+                  <a [routerLink]="child.link"
+                     routerLinkActive="nav-active"
+                     [routerLinkActiveOptions]="{ exact: !!child.exact }"
+                     (click)="mobileOpen.set(false)"
+                     class="nav-link flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-primary-soft hover:text-ink">
+                    <span class="grid w-4 place-items-center text-sm leading-none opacity-70">{{ child.icon }}</span>
+                    <span>{{ child.label }}</span>
+                  </a>
+                }
+              </div>
+            }
+          </div>
+        }
       }
     </nav>
 

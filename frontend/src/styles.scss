@@ -342,6 +342,14 @@ body {
 }
 :root[data-theme="dark"] .nav-link.nav-active { color: var(--color-primary); }
 
+/* หัวกลุ่มเมนูที่กางอยู่ — อ่อนกว่า .nav-active เพื่อให้เมนูย่อยของหน้าปัจจุบันยังเด่นที่สุด */
+.nav-link.nav-open {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-weight: 600;
+}
+:root[data-theme="dark"] .nav-link.nav-open { color: var(--color-primary); }
+
 /* ---------- การ์ด ---------- */
 .card {
   background: var(--color-surface);

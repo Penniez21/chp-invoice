@@ -17,6 +17,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
       },
       {
+        path: 'invoices',
+        loadComponent: () =>
+          import('./features/invoice/invoice-list/invoice-list').then((m) => m.InvoiceList),
+      },
+      {
         path: 'invoices/new',
         loadComponent: () =>
           import('./features/invoice/invoice-form/invoice-form').then((m) => m.InvoiceForm),
@@ -30,6 +35,36 @@ export const routes: Routes = [
         path: 'invoices/:id/report',
         loadComponent: () =>
           import('./features/invoice/invoice-report/invoice-report').then((m) => m.InvoiceReport),
+      },
+      {
+        path: 'quotations',
+        loadComponent: () =>
+          import('./features/quotation/quotation-list/quotation-list').then((m) => m.QuotationList),
+      },
+      {
+        path: 'quotations/new',
+        loadComponent: () =>
+          import('./features/quotation/quotation-form/quotation-form').then((m) => m.QuotationForm),
+      },
+      {
+        path: 'quotations/:id/edit',
+        loadComponent: () =>
+          import('./features/quotation/quotation-form/quotation-form').then((m) => m.QuotationForm),
+      },
+      {
+        path: 'quotations/:id/report',
+        loadComponent: () =>
+          import('./features/quotation/quotation-report/quotation-report').then((m) => m.QuotationReport),
+      },
+      {
+        path: 'settings/quoters',
+        loadComponent: () =>
+          import('./features/settings/quoter-settings/quoter-settings').then((m) => m.QuoterSettings),
+      },
+      {
+        path: 'settings/customers',
+        loadComponent: () =>
+          import('./features/settings/customer-settings/customer-settings').then((m) => m.CustomerSettings),
       },
       {
         path: 'settings/banks',
