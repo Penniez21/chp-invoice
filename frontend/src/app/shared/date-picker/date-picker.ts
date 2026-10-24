@@ -1,5 +1,6 @@
-import { Component, ElementRef, computed, forwardRef, input, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, booleanAttribute, computed, forwardRef, input, signal, viewChild } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { BE_OFFSET } from '../date-format';
 
 interface CalDay {
   iso: string;
@@ -37,6 +38,9 @@ export class DatePicker implements ControlValueAccessor {
 
   readonly placeholder = input('เลือกวันที่');
   readonly ariaLabel = input('เลือกวันที่');
+  /** แสดงปีเป็น พ.ศ. (ทั้งในช่องและหัวปฏิทิน) — ค่าที่เก็บยังเป็น ISO ค.ศ. เหมือนเดิม */
+  readonly buddhistEra = input(false, { transform: booleanAttribute });
+  private readonly yearOffset = computed(() => (this.buddhistEra() ? BE_OFFSET : 0));
 
   protected readonly value = signal(''); // ISO yyyy-MM-dd
   protected readonly open = signal(false);
@@ -51,14 +55,16 @@ export class DatePicker implements ControlValueAccessor {
     'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
   ];
 
-  protected readonly monthLabel = computed(() => `${this.months[this.viewMonth()]} ${this.viewYear()}`);
+  protected readonly monthLabel = computed(
+    () => `${this.months[this.viewMonth()]} ${this.viewYear() + this.yearOffset()}`
+  );
 
   /** ค่าที่โชว์ในช่อง — วว/ดด/ปปปป ให้ตรงกับรูปแบบวันที่ในรายงาน */
   protected readonly display = computed(() => {
     const v = this.value();
     if (!v) return '';
     const [y, m, d] = v.split('-');
-    return `${d}/${m}/${y}`;
+    return `${d}/${m}/${Number(y) + this.yearOffset()}`;
   });
 
   /** 6 สัปดาห์เต็มเสมอ (42 ช่อง) ความสูงปฏิทินจะได้ไม่กระโดดตอนเปลี่ยนเดือน */

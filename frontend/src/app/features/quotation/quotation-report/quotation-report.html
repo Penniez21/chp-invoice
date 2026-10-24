@@ -1,0 +1,247 @@
+<div class="mx-auto w-full max-w-[860px]">
+
+  <!-- stepper + actions (ซ่อนตอนพิมพ์) -->
+  <div class="mb-6 print:hidden">
+    <div class="card mb-4 px-4 py-4"><app-stepper [steps]="steps" [current]="1" /></div>
+    <!-- มือถือ: ปุ่มนำทางแถวบน · พิมพ์/PDF เต็มความกว้างแถวล่าง — ต้องใช้ ! เพราะ .btn อยู่นอก layer -->
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex gap-2">
+        @if (quotation(); as q) {
+          <a [routerLink]="['/quotations', q.id, 'edit']" class="btn btn--ghost">← แก้ไขข้อมูล</a>
+        }
+        <a routerLink="/quotations/new" class="btn btn--ghost">＋ ใบใหม่</a>
+      </div>
+      <div class="flex w-full items-center gap-2 sm:w-auto">
+        <a routerLink="/quotations" class="btn btn--ghost max-sm:!hidden">รายการใบเสนอราคา</a>
+        @if (quotation()) {
+          <button class="btn btn--ghost flex-1 sm:flex-none" (click)="openPreview()">🖨️ พิมพ์</button>
+          <button class="btn btn--primary flex-1 sm:flex-none" [disabled]="pdfLoading()" (click)="downloadPdf()">
+            @if (pdfLoading()) { <span class="spinner spinner--sm" style="--color-primary:#fff"></span> กำลังสร้าง… }
+            @else { ⬇ ดาวน์โหลด PDF }
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- แจ้งเตือนข้อมูลที่ยังไม่ถูกบันทึก — บันทึกแล้วแถวนั้นหายเอง และจะไปโผล่ใน dropdown ของหน้าสร้างใบ -->
+  @if (quotation(); as q) {
+    @if (!quoterSaved() || !customerSaved()) {
+      <div class="mb-6 space-y-2 print:hidden">
+        @if (!quoterSaved()) {
+          <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+            <div class="flex items-start gap-2 text-sm">
+              <span class="leading-5">⚠️</span>
+              <span class="text-amber-800">
+                ผู้เสนอราคา “<span class="font-semibold">{{ q.sellerName }}</span>” ยังไม่ถูกบันทึกในระบบ —
+                หากต้องการใช้ซ้ำในใบถัดไป กดปุ่ม <span class="font-semibold">บันทึกผู้เสนอราคา</span>
+              </span>
+            </div>
+            <button class="btn btn--primary btn--sm shrink-0" [disabled]="savingQuoter()" (click)="saveQuoter()">
+              @if (savingQuoter()) { <span class="spinner spinner--sm" style="--color-primary:#fff"></span> กำลังบันทึก… }
+              @else { ＋ บันทึกผู้เสนอราคา }
+            </button>
+          </div>
+        }
+        @if (!customerSaved()) {
+          <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+            <div class="flex items-start gap-2 text-sm">
+              <span class="leading-5">⚠️</span>
+              <span class="text-amber-800">
+                ลูกค้า “<span class="font-semibold">{{ q.customerName }}</span>” ยังไม่ถูกบันทึกในระบบ —
+                หากต้องการใช้ซ้ำในใบถัดไป กดปุ่ม <span class="font-semibold">บันทึกลูกค้า</span>
+              </span>
+            </div>
+            <button class="btn btn--primary btn--sm shrink-0" [disabled]="savingCustomer()" (click)="saveCustomer()">
+              @if (savingCustomer()) { <span class="spinner spinner--sm" style="--color-primary:#fff"></span> กำลังบันทึก… }
+              @else { ＋ บันทึกลูกค้า }
+            </button>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  @if (loading()) {
+    <app-spinner label="กำลังโหลดใบเสนอราคา…" />
+  } @else if (errorMsg()) {
+    <div class="card p-10 text-center text-red-600">{{ errorMsg() }}</div>
+  } @else if (quotation(); as q) {
+
+    <!-- ===== เอกสารใบเสนอราคา — ธีมเดียวกับใบแจ้งหนี้ (กระดาษ A4 สีขาวเสมอ ใช้สีน้อย) =====
+         ใช้คลาส invoice-doc ร่วมกัน เพื่อให้ CSS ตอนพิมพ์ (ขนาด 210×297mm) ใช้ได้เหมือนกัน
+         ต่างจากใบแจ้งหนี้: ใบเดียว ไม่มีสำเนา และไม่มีป้าย (ต้นฉบับ) — ng-template ไว้ใช้ซ้ำในตัวอย่างก่อนพิมพ์ -->
+    <ng-template #docTpl let-docId="docId">
+    <div [id]="docId"
+         class="animate-in invoice-doc mx-auto flex aspect-[210/297] w-full flex-col rounded-lg border border-slate-200 bg-white p-9 text-[12px] leading-5 text-slate-700 shadow-sm print:border-0 print:shadow-none">
+
+      <!-- header -->
+      <div class="flex items-start justify-end">
+        <div class="text-right">
+          <h1 class="text-[26px] font-bold leading-[1.35] text-[#0e9e8e]">ใบเสนอราคา</h1>
+          <p class="text-[10px] leading-none tracking-wide text-slate-400">QUOTATION</p>
+        </div>
+      </div>
+
+      <!-- แถวบน: ผู้เสนอ (ซ้าย — ข้อมูลผู้เสนอราคาแสดงที่นี่ที่เดียว) + ข้อมูลเอกสาร (กล่องเขียว) -->
+      <div class="mt-6 flex justify-between gap-8">
+        <div class="min-w-0 leading-[1.55]">
+          <div class="grid grid-cols-[70px_1fr] gap-x-2">
+            <span class="text-slate-400">ผู้เสนอ :</span><span class="font-semibold text-slate-800">{{ q.sellerName }}</span>
+            <span class="text-slate-400">ที่อยู่ :</span><span class="whitespace-pre-line">{{ q.sellerAddress || '-' }}</span>
+            <span class="text-slate-400">เลขภาษี :</span><span>{{ q.sellerTaxId || '-' }}</span>
+            <span class="text-slate-400">โทร :</span><span>{{ q.sellerPhone || '-' }}</span>
+            <span class="text-slate-400">อีเมล :</span><span class="break-all">{{ q.sellerEmail || '-' }}</span>
+          </div>
+        </div>
+        <div class="w-60 shrink-0 self-start rounded-lg bg-[#eaf7f4] p-3.5">
+          <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+            <span class="text-slate-500">ใบเสนอราคา เลขที่</span><span class="text-right font-semibold text-slate-800">{{ q.quotationNo }}</span>
+            <span class="text-slate-500">วันที่</span><span class="text-right text-slate-700">{{ formatDate(q.issueDate) }}</span>
+            <span class="text-slate-500">เลขที่ลูกค้า</span><span class="text-right text-slate-700">{{ q.customerNo || '-' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- แถวล่าง: ลูกค้า (ซ้าย) + โครงการ/สถานที่ (กล่องเหลือง ใต้เลขที่เอกสาร แบบช่อง "ชื่องาน") -->
+      <div class="mt-4 flex justify-between gap-8 border-t border-slate-100 pt-3.5">
+        <div class="min-w-0 leading-[1.55]">
+          <div class="grid grid-cols-[70px_1fr] gap-x-2">
+            <span class="text-slate-400">ลูกค้า :</span><span class="font-semibold text-slate-800">{{ q.customerName }}</span>
+            <span class="text-slate-400">ที่อยู่ :</span><span class="whitespace-pre-line">{{ q.customerAddress || '-' }}</span>
+            <span class="text-slate-400">เลขภาษี :</span><span>{{ q.customerTaxId || '-' }}</span>
+            <span class="text-slate-400">Attn. :</span><span>{{ q.customerAttn || '-' }}</span>
+            <span class="text-slate-400">โทร :</span><span>{{ q.customerPhone || '-' }}</span>
+            <span class="text-slate-400">อีเมล :</span><span class="break-all">{{ q.customerEmail || '-' }}</span>
+          </div>
+        </div>
+        <div class="w-60 shrink-0 self-start rounded-lg bg-[#fdf7e6] p-3.5 leading-[1.55]">
+          <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+            <span class="text-[#a67e2c]">โครงการ</span><span class="font-medium text-slate-800">{{ q.project || '-' }}</span>
+            <span class="text-[#a67e2c]">สถานที่</span><span class="text-slate-700">{{ q.location || '-' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ตารางรายการ — รายละเอียดย่อยเป็นแถวขีดนำหน้า ไม่มีราคา แบบใบตัวอย่าง -->
+      <div class="mt-5">
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="bg-[#eaf7f4] text-[11px] text-slate-600">
+              <th class="w-10 px-2 py-2 text-center font-medium">ลำดับ</th>
+              <th class="px-3 py-2 text-left font-medium">รายการ</th>
+              <th class="w-16 px-3 py-2 text-right font-medium">ปริมาณ</th>
+              <th class="w-16 px-2 py-2 text-center font-medium">หน่วย</th>
+              <th class="w-28 px-3 py-2 text-right font-medium leading-tight">ค่าแรงและวัสดุ<br>ต่อหน่วย</th>
+              <th class="w-28 px-3 py-2 text-right font-medium">ราคารวม</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (it of q.items; track $index) {
+              <tr [class.border-b]="!detailLines(it.details).length" class="border-slate-100">
+                <td class="px-2 py-1.5 text-center align-top text-slate-400">{{ $index + 1 }}</td>
+                <td class="px-3 py-1.5 align-top text-slate-700">{{ it.description }}</td>
+                <td class="px-3 py-1.5 text-right align-top text-slate-700">{{ it.quantity }}</td>
+                <td class="px-2 py-1.5 text-center align-top text-slate-700">{{ it.unit || '-' }}</td>
+                <td class="px-3 py-1.5 text-right align-top text-slate-700">{{ money(it.unitPrice) }}</td>
+                <td class="px-3 py-1.5 text-right align-top font-medium text-slate-800">{{ money(it.lineTotal) }}</td>
+              </tr>
+              @for (line of detailLines(it.details); track $index; let last = $last) {
+                <tr [class.border-b]="last" class="border-slate-100">
+                  <td></td>
+                  <td class="px-3 pb-1 pl-6 align-top text-[11px] text-slate-500" [class.pb-2]="last">- {{ line }}</td>
+                  <td></td><td></td><td></td><td></td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ดันส่วนล่างให้เต็มหน้า -->
+      <div class="flex-grow"></div>
+
+      <!-- สรุปยอด -->
+      <div class="mt-5 flex justify-between gap-8 border-t border-slate-200 pt-3.5">
+        <!-- items-end ดันตัวอักษรลงไปอยู่บรรทัดเดียวกับ "ราคาสุทธิทั้งหมด" ทางขวา -->
+        <div class="flex items-end gap-1.5">
+          <span class="font-medium text-slate-500">สรุป :</span>
+          <span class="max-w-[300px] text-[11px] text-slate-500">({{ bahtText(q.grandTotal) }})</span>
+        </div>
+        <div class="w-64 shrink-0">
+          <div class="flex justify-between py-0.5">
+            <span class="text-slate-500">รวมเป็นเงิน</span>
+            <span class="font-medium text-slate-700">{{ money(q.itemsTotal) }}</span>
+          </div>
+          @if (q.vatMode === 'INCLUDED') {
+            <div class="flex justify-between py-0.5">
+              <span class="text-slate-500">มูลค่าก่อนภาษีมูลค่าเพิ่ม</span>
+              <span class="font-medium text-slate-700">{{ money(q.beforeVat) }}</span>
+            </div>
+          }
+          @if (q.vatMode !== 'NONE') {
+            <div class="flex justify-between py-0.5">
+              <span class="text-slate-500">ภาษีมูลค่าเพิ่ม {{ q.vatRate }}%</span>
+              <span class="font-medium text-slate-700">{{ money(q.vatAmount) }}</span>
+            </div>
+          }
+          <div class="mt-1 flex items-center justify-between rounded-md bg-[#eaf7f4] px-3 py-2">
+            <span class="font-semibold text-[#0e7d70]">ราคาสุทธิทั้งหมด</span>
+            <span class="text-[15px] font-bold text-[#0e7d70]">{{ money(q.grandTotal) }} บาท</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- หมายเหตุ + ลายเซ็น -->
+      <div class="mt-3.5 border-t border-slate-200 pt-3">
+        <p class="whitespace-pre-line text-slate-500"><span class="font-medium text-slate-600">หมายเหตุ :</span> {{ q.remark || '—' }}</p>
+        <div class="mt-6 grid grid-cols-2 gap-10 text-center text-[11px] text-slate-500">
+          <div>
+            <div class="mx-auto mb-1.5 w-48 border-b border-dashed border-slate-300 pb-6"></div>
+            <p class="font-medium text-slate-700">({{ q.sellerName }})</p>
+            <p>ผู้เสนอราคา</p>
+          </div>
+          <div>
+            <div class="mx-auto mb-1.5 w-48 border-b border-dashed border-slate-300 pb-6"></div>
+            <p class="font-medium text-slate-700">({{ q.customerName }})</p>
+            <p>ผู้อนุมัติ / ลูกค้า · วันที่ ......../......../........</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    </ng-template>
+
+    <!-- จอแคบกว่า A4: ล็อกกว้าง 794px แล้วย่อทั้งก้อนด้วย zoom (ดู docZoom) — ตอนพิมพ์ CSS คืนเป็น 100% -->
+    <div class="doc-fit" [class.doc-fit--scaled]="docZoom() < 1" [style.zoom]="docZoom() < 1 ? docZoom() : null">
+      <ng-container *ngTemplateOutlet="docTpl; context: { docId: 'quotation-doc' }" />
+    </div>
+
+    <!-- ===== ตัวอย่างก่อนพิมพ์ ===== (print:hidden กันพิมพ์ซ้ำ 2 หน้าถ้ากด Ctrl+P ตอนเปิดอยู่) -->
+    @if (previewOpen()) {
+      <div class="preview animate-in print:hidden">
+        <div class="preview__bar">
+          <div class="min-w-0 max-sm:hidden">
+            <p class="text-sm font-semibold text-ink">ตัวอย่างก่อนพิมพ์</p>
+            <p class="text-xs text-ink-soft">1 หน้า · A4</p>
+          </div>
+
+          <div class="ml-auto flex items-center gap-1.5">
+            <button type="button" class="preview__btn" (click)="zoomBy(-0.1)" title="ย่อ">−</button>
+            <button type="button" class="preview__btn preview__btn--wide" (click)="fitZoom()" title="พอดีหน้าจอ">
+              {{ zoomPercent() }}%
+            </button>
+            <button type="button" class="preview__btn" (click)="zoomBy(0.1)" title="ขยาย">+</button>
+            <button type="button" class="btn btn--primary ml-1.5" (click)="printFromPreview()">🖨️ สั่งพิมพ์</button>
+            <button type="button" class="preview__btn" (click)="closePreview()" title="ปิด (Esc)">✕</button>
+          </div>
+        </div>
+
+        <div class="preview__scroll" (click)="onPreviewBackdrop($event)">
+          <div class="preview__stage" [style.zoom]="zoom()">
+            <ng-container *ngTemplateOutlet="docTpl; context: { docId: 'preview-doc' }" />
+          </div>
+        </div>
+      </div>
+    }
+  }
+</div>
