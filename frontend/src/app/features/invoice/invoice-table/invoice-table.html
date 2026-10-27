@@ -38,26 +38,27 @@
     @if (!query()) { <a routerLink="/invoices/new" class="btn btn--primary">＋ สร้างใบแรก</a> }
   </div>
 } @else {
-  <!-- มือถือ: การ์ดทีละใบ — ตารางกว้างเกินจอ ต้องเลื่อนข้างถึงจะเห็นยอดเงินกับปุ่มจัดการ -->
+  <!-- มือถือ: การ์ดทีละใบ — ตารางกว้างเกินจอ ต้องเลื่อนข้างถึงจะเห็นยอดเงินกับปุ่มจัดการ
+       แถวบน: เลขที่ + วันที่ + ปุ่มจัดการชิดขวา · แถวล่าง: ชื่อซ้าย ยอดเงินขวา (อ่านแบบรายการบัญชี) -->
   <ul class="divide-y divide-line/60 md:hidden">
     @for (inv of pager.items(); track inv.id) {
-      <li class="flex items-center gap-2 px-4 py-3.5" [class.opacity-40]="deletingId() === inv.id">
-        <a [routerLink]="['/invoices', inv.id, 'edit']" class="min-w-0 flex-1">
-          <div class="flex items-center gap-2">
-            <span class="chip">{{ inv.invoiceNo }}</span>
-            <span class="text-xs text-ink-soft">{{ formatDate(inv.issueDate) }}</span>
+      <li class="px-4 py-3" [class.opacity-40]="deletingId() === inv.id">
+        <div class="flex items-center gap-2">
+          <span class="chip">{{ inv.invoiceNo }}</span>
+          <span class="text-xs text-ink-soft">{{ formatDate(inv.issueDate) }}</span>
+          <div class="-mr-1.5 ml-auto flex shrink-0 items-center">
+            <a [routerLink]="['/invoices', inv.id, 'report']" title="ดูรายงาน"
+               class="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition hover:bg-primary-soft hover:text-primary-dark">📄</a>
+            <a [routerLink]="['/invoices', inv.id, 'edit']" title="แก้ไข"
+               class="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition hover:bg-primary-soft hover:text-primary-dark">✎</a>
+            <button (click)="remove(inv, $event)" title="ลบ" [disabled]="deletingId() === inv.id"
+                    class="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition hover:bg-red-50 hover:text-red-600">🗑</button>
           </div>
-          <p class="mt-1.5 truncate text-sm font-medium text-ink">{{ inv.recipientName }}</p>
-          <p class="mt-0.5 text-sm font-semibold text-ink">฿ {{ money(inv.netTotal) }}</p>
-        </a>
-        <div class="flex shrink-0 items-center gap-0.5">
-          <a [routerLink]="['/invoices', inv.id, 'report']" title="ดูรายงาน"
-             class="grid h-9 w-9 place-items-center rounded-lg text-ink-soft transition hover:bg-primary-soft hover:text-primary-dark">📄</a>
-          <a [routerLink]="['/invoices', inv.id, 'edit']" title="แก้ไข"
-             class="grid h-9 w-9 place-items-center rounded-lg text-ink-soft transition hover:bg-primary-soft hover:text-primary-dark">✎</a>
-          <button (click)="remove(inv, $event)" title="ลบ" [disabled]="deletingId() === inv.id"
-                  class="grid h-9 w-9 place-items-center rounded-lg text-ink-soft transition hover:bg-red-50 hover:text-red-600">🗑</button>
         </div>
+        <a [routerLink]="['/invoices', inv.id, 'edit']" class="mt-1 flex items-baseline justify-between gap-3">
+          <span class="min-w-0 truncate text-sm font-medium text-ink">{{ inv.recipientName }}</span>
+          <span class="shrink-0 whitespace-nowrap text-sm font-semibold text-ink">฿ {{ money(inv.netTotal) }}</span>
+        </a>
       </li>
     }
   </ul>

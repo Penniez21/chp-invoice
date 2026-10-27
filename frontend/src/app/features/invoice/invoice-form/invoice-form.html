@@ -202,23 +202,25 @@
 
       <!-- สรุปยอด -->
       <section class="card animate-in overflow-hidden">
-        <div class="p-6">
+        <!-- มือถือ: ชื่อแถว + ช่อง % อยู่บรรทัดเดียวเสมอ ยอดเงินไม่ตัดคำ ถ้าจอแคบจริง ๆ ยอดเงินลงบรรทัดใหม่ชิดขวาทั้งก้อน
+             (เดิม "หัก ภาษี ณ ที่จ่าย" แตกเป็น 2 บรรทัด และ "− ฿ 0.00" ถูกตัดกลางคำ) -->
+        <div class="p-4 sm:p-6">
           <div class="ml-auto max-w-sm space-y-2.5 text-sm">
-            <div class="flex justify-between">
+            <div class="flex justify-between gap-3">
               <span class="text-ink-soft">ยอดรวมย่อย</span>
-              <span class="font-semibold text-ink">฿ {{ formatMoney(subTotal()) }}</span>
+              <span class="whitespace-nowrap font-semibold text-ink">฿ {{ formatMoney(subTotal()) }}</span>
             </div>
-            <div class="flex items-center justify-between">
-              <span class="flex items-center gap-2 text-ink-soft">
+            <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+              <span class="flex items-center gap-2 whitespace-nowrap text-ink-soft">
                 หัก ภาษี ณ ที่จ่าย
                 <input type="number" min="0" max="100" step="0.5" formControlName="whtRate"
-                       class="w-16 rounded-lg border border-line bg-surface px-2 py-1 text-right text-ink" /> %
+                       class="w-14 rounded-lg border border-line bg-surface px-2 py-1 text-right text-ink" /> %
               </span>
-              <span class="font-semibold text-red-500">− ฿ {{ formatMoney(whtAmount()) }}</span>
+              <span class="ml-auto whitespace-nowrap font-semibold text-red-500">− ฿ {{ formatMoney(whtAmount()) }}</span>
             </div>
           </div>
         </div>
-        <div class="flex items-center justify-between px-6 py-4" style="background: var(--grad-brand)">
+        <div class="flex items-center justify-between gap-3 px-4 py-4 sm:px-6" style="background: var(--grad-brand)">
           <span class="font-semibold text-white">ยอดชำระสุทธิ</span>
           <span class="text-xl font-bold text-white">฿ {{ formatMoney(netTotal()) }}</span>
         </div>

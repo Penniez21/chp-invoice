@@ -8,12 +8,20 @@ import { Paginator } from './paginator';
 @Component({
   selector: 'app-pagination',
   imports: [],
+  // มือถือ: ข้อความสั้นบรรทัดเดียว + ตัวเลือกจำนวนต่อหน้า แล้วปุ่มเลขหน้าลงแถวของตัวเองตรงกลาง
+  // (เดิมประโยคยาวตัดบรรทัดจนเหลือคำว่า "รายการ" ค้างอยู่บรรทัดเดียว)
   template: `
-    <div class="flex flex-wrap items-center justify-between gap-4 border-t border-line px-4 py-3 text-sm">
+    <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-line px-4 py-3 text-sm">
       <div class="flex items-center gap-3">
-        <span class="text-ink-soft">
-          แสดงทั้ง <span class="font-semibold text-ink">{{ p().items().length }}</span> รายการ
-          จากทั้งหมด <span class="font-semibold text-ink">{{ p().total() }}</span> รายการ
+        <span class="whitespace-nowrap text-ink-soft">
+          <span class="sm:hidden">
+            <span class="font-semibold text-ink">{{ p().items().length }}</span> จาก
+            <span class="font-semibold text-ink">{{ p().total() }}</span> รายการ
+          </span>
+          <span class="max-sm:hidden">
+            แสดงทั้ง <span class="font-semibold text-ink">{{ p().items().length }}</span> รายการ
+            จากทั้งหมด <span class="font-semibold text-ink">{{ p().total() }}</span> รายการ
+          </span>
         </span>
         <label class="flex items-center gap-1.5 text-ink-soft">
           <span class="hidden sm:inline">แสดง</span>
@@ -25,7 +33,7 @@ import { Paginator } from './paginator';
         </label>
       </div>
 
-      <div class="flex items-center gap-1">
+      <div class="flex items-center gap-1 max-sm:w-full max-sm:justify-center">
         <button type="button" (click)="p().prev()" [disabled]="p().safePage() === 1" aria-label="หน้าก่อนหน้า"
                 class="grid h-9 min-w-9 place-items-center rounded-lg border border-line px-2 text-ink transition hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-40">‹</button>
         @for (n of p().pageNumbers(); track n) {

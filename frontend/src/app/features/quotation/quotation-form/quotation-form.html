@@ -230,7 +230,8 @@
 
       <!-- สรุปยอด -->
       <section class="card animate-in overflow-hidden">
-        <div class="space-y-5 p-6">
+        <!-- มือถือ: ยอดเงินและช่องอัตราไม่ตัดคำ (แบบเดียวกับฟอร์มใบแจ้งหนี้) -->
+        <div class="space-y-5 p-4 sm:p-6">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <span class="text-sm font-medium text-ink">ภาษีมูลค่าเพิ่ม</span>
             <div class="flex flex-wrap items-center gap-2">
@@ -245,35 +246,35 @@
                 }
               </div>
               @if (vatMode() !== 'NONE') {
-                <span class="flex items-center gap-1 text-sm text-ink-soft">
+                <span class="flex items-center gap-1 whitespace-nowrap text-sm text-ink-soft">
                   อัตรา
                   <input type="number" min="0" max="100" step="0.5" formControlName="vatRate"
-                         class="w-16 rounded-lg border border-line bg-surface px-2 py-1 text-right text-ink" /> %
+                         class="w-14 rounded-lg border border-line bg-surface px-2 py-1 text-right text-ink" /> %
                 </span>
               }
             </div>
           </div>
 
           <div class="ml-auto max-w-sm space-y-2.5 text-sm">
-            <div class="flex justify-between">
+            <div class="flex justify-between gap-3">
               <span class="text-ink-soft">รวมเป็นเงิน</span>
-              <span class="font-semibold text-ink">฿ {{ formatMoney(itemsTotal()) }}</span>
+              <span class="whitespace-nowrap font-semibold text-ink">฿ {{ formatMoney(itemsTotal()) }}</span>
             </div>
             @if (vatMode() === 'INCLUDED') {
-              <div class="flex justify-between">
+              <div class="flex justify-between gap-3">
                 <span class="text-ink-soft">มูลค่าก่อนภาษีมูลค่าเพิ่ม</span>
-                <span class="font-semibold text-ink">฿ {{ formatMoney(beforeVat()) }}</span>
+                <span class="whitespace-nowrap font-semibold text-ink">฿ {{ formatMoney(beforeVat()) }}</span>
               </div>
             }
             @if (vatMode() !== 'NONE') {
-              <div class="flex justify-between">
+              <div class="flex justify-between gap-3">
                 <span class="text-ink-soft">ภาษีมูลค่าเพิ่ม {{ form.controls.vatRate.value }}%{{ vatMode() === 'INCLUDED' ? ' (รวมอยู่ในราคาแล้ว)' : '' }}</span>
-                <span class="font-semibold text-ink">{{ vatMode() === 'EXCLUDED' ? '+ ' : '' }}฿ {{ formatMoney(vatAmount()) }}</span>
+                <span class="whitespace-nowrap font-semibold text-ink">{{ vatMode() === 'EXCLUDED' ? '+ ' : '' }}฿ {{ formatMoney(vatAmount()) }}</span>
               </div>
             }
           </div>
         </div>
-        <div class="flex items-center justify-between px-6 py-4" style="background: var(--grad-brand)">
+        <div class="flex items-center justify-between gap-3 px-4 py-4 sm:px-6" style="background: var(--grad-brand)">
           <span class="font-semibold text-white">ราคาสุทธิทั้งหมด</span>
           <span class="text-xl font-bold text-white">฿ {{ formatMoney(grandTotal()) }}</span>
         </div>

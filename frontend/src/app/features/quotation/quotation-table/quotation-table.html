@@ -37,27 +37,29 @@
     @if (!query()) { <a routerLink="/quotations/new" class="btn btn--primary">＋ สร้างใบเสนอราคาแรก</a> }
   </div>
 } @else {
-  <!-- มือถือ: การ์ดทีละใบ -->
+  <!-- มือถือ: การ์ดทีละใบ — แถวบน: เลขที่ + วันที่ + ปุ่มจัดการชิดขวา · แถวล่าง: ลูกค้าซ้าย ยอดเงินขวา · โครงการใต้ลงมา -->
   <ul class="divide-y divide-line/60 md:hidden">
     @for (x of pager.items(); track x.id) {
-      <li class="flex items-center gap-2 px-4 py-3.5" [class.opacity-40]="deletingId() === x.id">
-        <a [routerLink]="['/quotations', x.id, 'edit']" class="min-w-0 flex-1">
-          <div class="flex items-center gap-2">
-            <span class="chip">{{ x.quotationNo }}</span>
-            <span class="text-xs text-ink-soft">{{ formatDate(x.issueDate) }}</span>
+      <li class="px-4 py-3" [class.opacity-40]="deletingId() === x.id">
+        <div class="flex items-center gap-2">
+          <span class="chip">{{ x.quotationNo }}</span>
+          <span class="text-xs text-ink-soft">{{ formatDate(x.issueDate) }}</span>
+          <div class="-mr-1.5 ml-auto flex shrink-0 items-center">
+            <a [routerLink]="['/quotations', x.id, 'report']" title="ดูรายงาน"
+               class="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition hover:bg-primary-soft hover:text-primary-dark">📄</a>
+            <a [routerLink]="['/quotations', x.id, 'edit']" title="แก้ไข"
+               class="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition hover:bg-primary-soft hover:text-primary-dark">✎</a>
+            <button (click)="remove(x, $event)" title="ลบ" [disabled]="deletingId() === x.id"
+                    class="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition hover:bg-red-50 hover:text-red-600">🗑</button>
           </div>
-          <p class="mt-1.5 truncate text-sm font-medium text-ink">{{ x.customerName }}</p>
-          @if (x.project) { <p class="truncate text-xs text-ink-soft">{{ x.project }}</p> }
-          <p class="mt-0.5 text-sm font-semibold text-ink">฿ {{ money(x.grandTotal) }}</p>
-        </a>
-        <div class="flex shrink-0 items-center gap-0.5">
-          <a [routerLink]="['/quotations', x.id, 'report']" title="ดูรายงาน"
-             class="grid h-9 w-9 place-items-center rounded-lg text-ink-soft transition hover:bg-primary-soft hover:text-primary-dark">📄</a>
-          <a [routerLink]="['/quotations', x.id, 'edit']" title="แก้ไข"
-             class="grid h-9 w-9 place-items-center rounded-lg text-ink-soft transition hover:bg-primary-soft hover:text-primary-dark">✎</a>
-          <button (click)="remove(x, $event)" title="ลบ" [disabled]="deletingId() === x.id"
-                  class="grid h-9 w-9 place-items-center rounded-lg text-ink-soft transition hover:bg-red-50 hover:text-red-600">🗑</button>
         </div>
+        <a [routerLink]="['/quotations', x.id, 'edit']" class="mt-1 block">
+          <span class="flex items-baseline justify-between gap-3">
+            <span class="min-w-0 truncate text-sm font-medium text-ink">{{ x.customerName }}</span>
+            <span class="shrink-0 whitespace-nowrap text-sm font-semibold text-ink">฿ {{ money(x.grandTotal) }}</span>
+          </span>
+          @if (x.project) { <span class="block truncate text-xs text-ink-soft">{{ x.project }}</span> }
+        </a>
       </li>
     }
   </ul>
