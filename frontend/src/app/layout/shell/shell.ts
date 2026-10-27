@@ -53,6 +53,14 @@ export class Shell {
       ],
     },
     {
+      // ใช้ผู้ออก / ผู้รับ / บัญชีธนาคาร ชุดเดียวกับใบแจ้งหนี้ (ฟอร์มเหมือนกันทุกอย่าง) จึงไม่ซ้ำเมนูตรงนี้
+      kind: 'group', key: 'receipt', label: 'ใบเสร็จรับเงิน', icon: '▣',
+      children: [
+        { label: 'รายการใบเสร็จรับเงิน', icon: '☰', link: '/receipts', exact: true },
+        { label: 'สร้างใบเสร็จรับเงิน', icon: '✎', link: '/receipts/new', exact: true },
+      ],
+    },
+    {
       kind: 'group', key: 'quotation', label: 'ใบเสนอราคา', icon: '◈',
       children: [
         { label: 'รายการใบเสนอราคา', icon: '☰', link: '/quotations', exact: true },

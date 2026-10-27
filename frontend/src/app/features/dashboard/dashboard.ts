@@ -3,33 +3,44 @@ import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { InvoiceResponse, InvoiceService } from '../invoice/invoice.service';
 import { QuotationResponse, QuotationService } from '../quotation/quotation.service';
+import { ReceiptResponse, ReceiptService } from '../receipt/receipt.service';
 import { InvoiceTable } from '../invoice/invoice-table/invoice-table';
 import { QuotationTable } from '../quotation/quotation-table/quotation-table';
+import { ReceiptTable } from '../receipt/receipt-table/receipt-table';
 
-type Tab = 'invoices' | 'quotations';
+type Tab = 'invoices' | 'receipts' | 'quotations';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, NgTemplateOutlet, InvoiceTable, QuotationTable],
+  imports: [RouterLink, NgTemplateOutlet, InvoiceTable, QuotationTable, ReceiptTable],
   templateUrl: './dashboard.html',
 })
 export class Dashboard {
   private invoiceService = inject(InvoiceService);
   private quotationService = inject(QuotationService);
+  private receiptService = inject(ReceiptService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
   protected readonly invoices = signal<InvoiceResponse[]>([]);
+  protected readonly receipts = signal<ReceiptResponse[]>([]);
   protected readonly quotations = signal<QuotationResponse[]>([]);
   protected readonly loadingInvoices = signal(true);
+  protected readonly loadingReceipts = signal(true);
   protected readonly loadingQuotations = signal(true);
 
-  /** แท็บที่เลือก ผูกกับ ?tab=quotations — กดย้อนกลับจากหน้าอื่นแล้วยังอยู่แท็บเดิม */
+  /** แท็บที่เลือก ผูกกับ ?tab=receipts / ?tab=quotations — กดย้อนกลับจากหน้าอื่นแล้วยังอยู่แท็บเดิม */
   readonly tab = input<string>();
-  protected readonly activeTab = computed<Tab>(() => (this.tab() === 'quotations' ? 'quotations' : 'invoices'));
+  protected readonly activeTab = computed<Tab>(() => {
+    const t = this.tab();
+    return t === 'receipts' || t === 'quotations' ? t : 'invoices';
+  });
 
   protected readonly totalNet = computed(() =>
     this.invoices().reduce((s, i) => s + (i.netTotal ?? 0), 0)
+  );
+  protected readonly totalReceived = computed(() =>
+    this.receipts().reduce((s, r) => s + (r.netTotal ?? 0), 0)
   );
   protected readonly totalQuoted = computed(() =>
     this.quotations().reduce((s, q) => s + (q.grandTotal ?? 0), 0)
@@ -43,6 +54,13 @@ export class Dashboard {
       },
       error: () => this.loadingInvoices.set(false),
     });
+    this.receiptService.list().subscribe({
+      next: (list) => {
+        this.receipts.set(list);
+        this.loadingReceipts.set(false);
+      },
+      error: () => this.loadingReceipts.set(false),
+    });
     this.quotationService.list().subscribe({
       next: (list) => {
         this.quotations.set(list);
@@ -55,13 +73,17 @@ export class Dashboard {
   protected selectTab(tab: Tab): void {
     this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { tab: tab === 'quotations' ? tab : null },
+      queryParams: { tab: tab === 'invoices' ? null : tab },
       replaceUrl: true,
     });
   }
 
   protected onInvoiceDeleted(id: number): void {
     this.invoices.update((list) => list.filter((x) => x.id !== id));
+  }
+
+  protected onReceiptDeleted(id: number): void {
+    this.receipts.update((list) => list.filter((x) => x.id !== id));
   }
 
   protected onQuotationDeleted(id: number): void {

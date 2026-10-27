@@ -37,6 +37,26 @@ export const routes: Routes = [
           import('./features/invoice/invoice-report/invoice-report').then((m) => m.InvoiceReport),
       },
       {
+        path: 'receipts',
+        loadComponent: () =>
+          import('./features/receipt/receipt-list/receipt-list').then((m) => m.ReceiptList),
+      },
+      {
+        path: 'receipts/new',
+        loadComponent: () =>
+          import('./features/receipt/receipt-form/receipt-form').then((m) => m.ReceiptForm),
+      },
+      {
+        path: 'receipts/:id/edit',
+        loadComponent: () =>
+          import('./features/receipt/receipt-form/receipt-form').then((m) => m.ReceiptForm),
+      },
+      {
+        path: 'receipts/:id/report',
+        loadComponent: () =>
+          import('./features/receipt/receipt-report/receipt-report').then((m) => m.ReceiptReport),
+      },
+      {
         path: 'quotations',
         loadComponent: () =>
           import('./features/quotation/quotation-list/quotation-list').then((m) => m.QuotationList),

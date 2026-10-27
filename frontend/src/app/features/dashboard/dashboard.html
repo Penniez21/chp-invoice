@@ -4,15 +4,16 @@
   <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
     <div class="page-head">
       <h1 class="page-head__title">แดชบอร์ด</h1>
-      <p class="page-head__sub">ภาพรวมใบแจ้งหนี้และใบเสนอราคาทั้งหมด</p>
+      <p class="page-head__sub">ภาพรวมใบแจ้งหนี้ ใบเสร็จรับเงิน และใบเสนอราคาทั้งหมด</p>
     </div>
     <div class="flex flex-wrap gap-2">
       <a routerLink="/quotations/new" class="btn btn--secondary">＋ ใบเสนอราคา</a>
+      <a routerLink="/receipts/new" class="btn btn--secondary">＋ ใบเสร็จรับเงิน</a>
       <a routerLink="/invoices/new" class="btn btn--primary">＋ ใบแจ้งหนี้</a>
     </div>
   </div>
 
-  <!-- stat cards — 2 ใบต่อแถว (ใบแจ้งหนี้ บน / ใบเสนอราคา ล่าง)
+  <!-- stat cards — 2 ใบต่อแถว แถวละประเภทเอกสาร (ใบแจ้งหนี้ / ใบเสร็จรับเงิน / ใบเสนอราคา)
        ไม่ทำ 4 ใบต่อแถว เพราะจอ 1280 มีแถบเมนูกินที่ ยอดเงินหลักล้านจะล้นการ์ด -->
   <div class="mb-6 grid gap-4 sm:grid-cols-2">
     <div class="card animate-in flex items-center gap-4 p-5">
@@ -27,6 +28,20 @@
       <div class="min-w-0">
         <p class="text-xs text-ink-soft">ยอดชำระสุทธิรวม (ใบแจ้งหนี้)</p>
         <p class="whitespace-nowrap text-2xl font-bold text-ink">฿ {{ money(totalNet()) }}</p>
+      </div>
+    </div>
+    <div class="card animate-in flex items-center gap-4 p-5">
+      <span class="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary-soft text-2xl">🧾</span>
+      <div class="min-w-0">
+        <p class="text-xs text-ink-soft">ใบเสร็จรับเงินทั้งหมด</p>
+        <p class="text-2xl font-bold text-ink">{{ receipts().length }} <span class="text-sm font-medium text-ink-soft">ใบ</span></p>
+      </div>
+    </div>
+    <div class="card animate-in flex items-center gap-4 p-5">
+      <span class="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-secondary-soft text-2xl">💵</span>
+      <div class="min-w-0">
+        <p class="text-xs text-ink-soft">ยอดรับเงินสุทธิรวม (ใบเสร็จรับเงิน)</p>
+        <p class="whitespace-nowrap text-2xl font-bold text-ink">฿ {{ money(totalReceived()) }}</p>
       </div>
     </div>
     <div class="card animate-in flex items-center gap-4 p-5">
@@ -45,18 +60,26 @@
     </div>
   </div>
 
-  <!-- แท็บสลับ ใบแจ้งหนี้ / ใบเสนอราคา — ตารางเต็ม (ค้นหา + แบ่งหน้า) อยู่ในคอมโพเนนต์ตาราง -->
+  <!-- แท็บสลับ ใบแจ้งหนี้ / ใบเสร็จรับเงิน / ใบเสนอราคา — ตารางเต็ม (ค้นหา + แบ่งหน้า) อยู่ในคอมโพเนนต์ตาราง
+       มือถือ: เต็มความกว้าง แต่ละแท็บกว้างตามชื่อ (flex-auto) ตัวหนังสือบรรทัดเดียว ซ่อนตัวเลข (มีในการ์ดสรุปด้านบนแล้ว)
+       ไม่งั้นที่จอ 320px ชื่อแท็บถูกตัดขึ้นบรรทัดใหม่ทีละคำ -->
   <ng-template #tabs>
-    <div class="flex items-center gap-1 rounded-full border border-line bg-surface p-1" role="tablist" aria-label="ประเภทเอกสาร">
+    <div class="flex w-full items-center gap-1 rounded-full border border-line bg-surface p-1 sm:w-auto"
+         role="tablist" aria-label="ประเภทเอกสาร">
       <button type="button" role="tab" [attr.aria-selected]="activeTab() === 'invoices'" (click)="selectTab('invoices')"
-              class="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all"
+              class="flex flex-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1.5 text-[11px] font-medium transition-all min-[360px]:text-xs sm:flex-none sm:px-4 sm:text-sm"
               [class]="activeTab() === 'invoices' ? 'bg-primary text-white shadow' : 'text-ink-soft hover:text-ink'">
-        ใบแจ้งหนี้ <span class="text-xs opacity-80">{{ invoices().length }}</span>
+        ใบแจ้งหนี้ <span class="text-xs opacity-80 max-sm:hidden">{{ invoices().length }}</span>
+      </button>
+      <button type="button" role="tab" [attr.aria-selected]="activeTab() === 'receipts'" (click)="selectTab('receipts')"
+              class="flex flex-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1.5 text-[11px] font-medium transition-all min-[360px]:text-xs sm:flex-none sm:px-4 sm:text-sm"
+              [class]="activeTab() === 'receipts' ? 'bg-primary text-white shadow' : 'text-ink-soft hover:text-ink'">
+        ใบเสร็จรับเงิน <span class="text-xs opacity-80 max-sm:hidden">{{ receipts().length }}</span>
       </button>
       <button type="button" role="tab" [attr.aria-selected]="activeTab() === 'quotations'" (click)="selectTab('quotations')"
-              class="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all"
+              class="flex flex-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1.5 text-[11px] font-medium transition-all min-[360px]:text-xs sm:flex-none sm:px-4 sm:text-sm"
               [class]="activeTab() === 'quotations' ? 'bg-primary text-white shadow' : 'text-ink-soft hover:text-ink'">
-        ใบเสนอราคา <span class="text-xs opacity-80">{{ quotations().length }}</span>
+        ใบเสนอราคา <span class="text-xs opacity-80 max-sm:hidden">{{ quotations().length }}</span>
       </button>
     </div>
   </ng-template>
@@ -64,11 +87,15 @@
   <section class="card animate-in overflow-visible">
     @if (activeTab() === 'quotations') {
       <app-quotation-table [quotations]="quotations()" [loading]="loadingQuotations()" (deleted)="onQuotationDeleted($event)">
-        <div toolbarStart><ng-container *ngTemplateOutlet="tabs" /></div>
+        <div toolbarStart class="w-full sm:w-auto"><ng-container *ngTemplateOutlet="tabs" /></div>
       </app-quotation-table>
+    } @else if (activeTab() === 'receipts') {
+      <app-receipt-table [receipts]="receipts()" [loading]="loadingReceipts()" (deleted)="onReceiptDeleted($event)">
+        <div toolbarStart class="w-full sm:w-auto"><ng-container *ngTemplateOutlet="tabs" /></div>
+      </app-receipt-table>
     } @else {
       <app-invoice-table [invoices]="invoices()" [loading]="loadingInvoices()" (deleted)="onInvoiceDeleted($event)">
-        <div toolbarStart><ng-container *ngTemplateOutlet="tabs" /></div>
+        <div toolbarStart class="w-full sm:w-auto"><ng-container *ngTemplateOutlet="tabs" /></div>
       </app-invoice-table>
     }
   </section>
