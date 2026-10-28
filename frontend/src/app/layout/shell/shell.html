@@ -53,9 +53,8 @@
               <div class="animate-in ml-[1.35rem] mt-0.5 space-y-0.5 border-l border-line pl-2.5">
                 @for (child of entry.children; track child.link) {
                   <a [routerLink]="child.link"
-                     routerLinkActive="nav-active"
-                     [routerLinkActiveOptions]="{ exact: !!child.exact }"
-                     (click)="mobileOpen.set(false)"
+                     [class.nav-active]="isChildActive(entry.key, child)"
+                     (click)="pickChild(entry.key)"
                      class="nav-link flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-ink-soft transition-all hover:bg-primary-soft hover:text-ink">
                     <span class="grid w-4 place-items-center text-sm leading-none opacity-70">{{ child.icon }}</span>
                     <span>{{ child.label }}</span>
