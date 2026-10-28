@@ -13,6 +13,7 @@ export interface ReceiptItemDto {
 export interface ReceiptRequest {
   receiptNo: string;
   poNo?: string | null;
+  project?: string | null;
   issueDate: string;          // ISO yyyy-MM-dd
   dueDate?: string | null;
   issuerName: string;

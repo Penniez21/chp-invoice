@@ -101,6 +101,7 @@ public class InvoiceService {
     private void apply(Invoice inv, InvoiceRequest req) {
         inv.setInvoiceNo(req.invoiceNo());
         inv.setPoNo(req.poNo());
+        inv.setProject(trimOrNull(req.project()));
         inv.setIssueDate(req.issueDate());
         inv.setDueDate(req.dueDate());
 
@@ -148,5 +149,11 @@ public class InvoiceService {
 
     private static BigDecimal nz(BigDecimal v) {
         return v == null ? BigDecimal.ZERO : v;
+    }
+
+    private static String trimOrNull(String v) {
+        if (v == null) return null;
+        String t = v.trim();
+        return t.isEmpty() ? null : t;
     }
 }

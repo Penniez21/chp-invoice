@@ -81,6 +81,28 @@ class InvoiceControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void project_isTrimmed_andBlankBecomesNull() throws Exception {
+        String withProject = om.writeValueAsString(Map.of(
+                "invoiceNo", "P-1", "project", "  งานวางท่อ  ", "issueDate", "2026-07-24",
+                "issuerName", "A", "recipientName", "B", "whtRate", 3.00,
+                "items", java.util.List.of(Map.of("description", "x", "quantity", 1, "unitPrice", 1))
+        ));
+        mvc.perform(post("/api/invoices").contentType(MediaType.APPLICATION_JSON).content(withProject))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.project").value("งานวางท่อ"));
+
+        String blankProject = om.writeValueAsString(Map.of(
+                "invoiceNo", "P-2", "project", "   ", "issueDate", "2026-07-24",
+                "issuerName", "A", "recipientName", "B", "whtRate", 3.00,
+                "items", java.util.List.of(Map.of("description", "x", "quantity", 1, "unitPrice", 1))
+        ));
+        mvc.perform(post("/api/invoices").contentType(MediaType.APPLICATION_JSON).content(blankProject))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.project").doesNotExist());
+    }
+
+    @Test
     void create_withoutAuth_returns401() throws Exception {
         mvc.perform(post("/api/invoices")
                         .contentType(MediaType.APPLICATION_JSON)

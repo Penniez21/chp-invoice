@@ -41,6 +41,58 @@ export abstract class DocumentPage {
       ro.observe(host);
       destroyRef.onDestroy(() => ro.disconnect());
     });
+
+    // ผูกกับ beforeprint/afterprint เพื่อให้ชื่อไฟล์ถูกทั้งตอนกดปุ่มสั่งพิมพ์และตอนกด Ctrl+P เอง
+    const before = () => this.applyPrintTitle();
+    const after = () => this.restoreTitle();
+    window.addEventListener('beforeprint', before);
+    window.addEventListener('afterprint', after);
+    destroyRef.onDestroy(() => {
+      window.removeEventListener('beforeprint', before);
+      window.removeEventListener('afterprint', after);
+      this.restoreTitle();
+    });
+  }
+
+  // ---- ชื่อไฟล์ ----
+
+  /**
+   * ชื่อไฟล์ (ไม่มีนามสกุล) ทั้งตอนดาวน์โหลด PDF และตอนสั่งพิมพ์แล้วเลือก "บันทึกเป็น PDF"
+   * ทุกเอกสารใช้รูปแบบเดียวกัน — ดู DocumentPage.docFileName
+   */
+  protected abstract fileBaseName(): string;
+
+  /**
+   * "ชนิดเอกสาร-เลขที่-ชื่อโครงการ" เช่น Invoice-014-งานซ่อมหลังคา · ไม่มีโครงการก็จบที่เลขที่ (Invoice-014)
+   * ตัดอักขระที่ Windows/macOS ไม่ยอมให้อยู่ในชื่อไฟล์ทิ้ง (เช่น / : ?) ไม่งั้นเบราว์เซอร์จะแทนด้วย _ เอง
+   */
+  protected static docFileName(
+    type: string,
+    no: string | null | undefined,
+    project: string | null | undefined,
+  ): string {
+    const clean = (s: string | null | undefined) =>
+      (s ?? '').replace(/[\\/:*?"<>|\x00-\x1f]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const name = [type, clean(no), clean(project)].filter(Boolean).join('-');
+    // ชื่อโครงการยาวมากจะเกินที่ระบบไฟล์รับได้ · Windows ไม่ยอมให้ชื่อไฟล์ลงท้ายด้วยจุดหรือช่องว่าง
+    return name.slice(0, 150).replace(/[. ]+$/, '');
+  }
+
+  /**
+   * เบราว์เซอร์ตั้งชื่อไฟล์ตอน "บันทึกเป็น PDF" จาก document.title จึงสลับเป็นชื่อเอกสารระหว่างพิมพ์
+   * เก็บชื่อเดิมไว้ครั้งเดียว — ปุ่มสั่งพิมพ์เรียกเองก่อน แล้ว beforeprint จะเรียกซ้ำอีกรอบ
+   */
+  private savedTitle: string | null = null;
+
+  private applyPrintTitle(): void {
+    if (this.savedTitle === null) this.savedTitle = document.title;
+    document.title = this.fileBaseName() || this.savedTitle;
+  }
+
+  private restoreTitle(): void {
+    if (this.savedTitle === null) return;
+    document.title = this.savedTitle;
+    this.savedTitle = null;
   }
 
   // ---- ตัวอย่างก่อนพิมพ์ (ทำเองในแอป เพราะหน้าต่างพิมพ์ของเบราว์เซอร์ปรับขนาด/ตำแหน่งไม่ได้) ----
@@ -79,7 +131,13 @@ export abstract class DocumentPage {
     this.closePreview();
     this.appRef.tick();
     await new Promise((r) => setTimeout(r, 60));
-    window.print();
+    this.applyPrintTitle();
+    try {
+      window.print();
+    } finally {
+      // window.print() รอจนผู้ใช้ปิดหน้าต่างพิมพ์ — คืนชื่อแท็บไว้ตรงนี้ด้วย เผื่อเบราว์เซอร์ไม่ส่ง afterprint
+      this.restoreTitle();
+    }
   }
 
   /**
@@ -90,7 +148,8 @@ export abstract class DocumentPage {
    *
    * โยน error ออกไปถ้าสร้างไม่สำเร็จ — คอมโพเนนต์ลูกเป็นคนตัดสินใจว่าจะแจ้งผู้ใช้อย่างไร
    */
-  protected async exportPdf(docId: string, fileName: string, labels = ['ต้นฉบับ', 'สำเนา']): Promise<void> {
+  protected async exportPdf(docId: string, labels = ['ต้นฉบับ', 'สำเนา']): Promise<void> {
+    const fileName = `${this.fileBaseName()}.pdf`;
     const el = document.getElementById(docId);
     if (!el || this.pdfLoading()) return;
     this.pdfLoading.set(true);

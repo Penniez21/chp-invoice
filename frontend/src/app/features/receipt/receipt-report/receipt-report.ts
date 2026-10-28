@@ -160,12 +160,18 @@ export class ReceiptReport extends DocumentPage {
     });
   }
 
+  /** เช่น "Receipt-PS-032-งานซ่อมหลังคาโกดัง" */
+  protected fileBaseName(): string {
+    const r = this.receipt();
+    return DocumentPage.docFileName('Receipt', r?.receiptNo ?? String(this.id()), r?.project);
+  }
+
   /** PDF 2 หน้า (ต้นฉบับ + สำเนา) — กลไกการจับภาพอยู่ใน DocumentPage.exportPdf */
   protected async downloadPdf(): Promise<void> {
     if (this.pdfLoading()) return;
     this.errorMsg.set(null);
     try {
-      await this.exportPdf('receipt-doc', `receipt-${this.receipt()?.receiptNo ?? this.id()}.pdf`);
+      await this.exportPdf('receipt-doc');
     } catch {
       this.errorMsg.set('สร้าง PDF ไม่สำเร็จ');
     }

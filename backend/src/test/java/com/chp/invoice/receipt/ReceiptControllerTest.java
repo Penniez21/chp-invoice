@@ -59,15 +59,22 @@ class ReceiptControllerTest {
 
     @Test
     @WithMockUser(username = "admin", roles = "ADMIN")
-    void nextNumbers_runSeparatelyFromInvoices() throws Exception {
-        mvc.perform(post("/api/receipts")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(sampleReceiptJson("041")))
-                .andExpect(status().isCreated());
-
+    void nextNumbers_startAtPS032_thenFollowHighestPSNumber() throws Exception {
+        // ระบบเดิมใช้ถึง PS-031 — ยังไม่มีใบ PS- ในระบบนี้ (เลขรูปแบบอื่น เช่น 001 ไม่นับ) → PS-032
         mvc.perform(get("/api/receipts/next-numbers"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.receiptNo").value("042"));
+                .andExpect(jsonPath("$.receiptNo").value("PS-032"));
+
+        // เลขต่ำกว่า 032 ที่พิมพ์เองไม่ดึงเลขรันถอยหลัง
+        mvc.perform(post("/api/receipts").contentType(MediaType.APPLICATION_JSON).content(sampleReceiptJson("PS-005")))
+                .andExpect(status().isCreated());
+        mvc.perform(get("/api/receipts/next-numbers"))
+                .andExpect(jsonPath("$.receiptNo").value("PS-032"));
+
+        mvc.perform(post("/api/receipts").contentType(MediaType.APPLICATION_JSON).content(sampleReceiptJson("PS-040")))
+                .andExpect(status().isCreated());
+        mvc.perform(get("/api/receipts/next-numbers"))
+                .andExpect(jsonPath("$.receiptNo").value("PS-041"));
     }
 
     @Test
@@ -86,6 +93,25 @@ class ReceiptControllerTest {
                         .content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("กรุณากรอกเลขที่ใบเสร็จรับเงิน"));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void project_isSavedAndReturned() throws Exception {
+        String body = om.writeValueAsString(Map.of(
+                // เลขที่ไม่ใช่ตัวเลขล้วน — เลขรันข้ามไป จึงไม่ไปรบกวน nextNumbers_runSeparatelyFromInvoices
+                "receiptNo", "R-PROJECT", "project", "งานวางท่อ", "issueDate", "2026-10-27",
+                "issuerName", "A", "recipientName", "B", "whtRate", 3.00,
+                "items", List.of(Map.of("description", "x", "quantity", 1, "unitPrice", 1))
+        ));
+        String created = mvc.perform(post("/api/receipts").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long id = om.readTree(created).get("id").asLong();
+
+        mvc.perform(get("/api/receipts/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.project").value("งานวางท่อ"));
     }
 
     @Test

@@ -73,6 +73,7 @@ export class ReceiptForm implements OnInit {
   protected readonly form = this.fb.nonNullable.group({
     receiptNo: ['', Validators.required],
     poNo: [''],
+    project: [''],
     issueDate: [this.today(), Validators.required],
     dueDate: [this.today()],
     issuerName: ['', Validators.required],
@@ -214,6 +215,7 @@ export class ReceiptForm implements OnInit {
     const payload: ReceiptRequest = {
       ...raw,
       poNo: raw.poNo || null,
+      project: raw.project.trim() || null,
       dueDate: raw.dueDate || null,
       items: raw.items.map((it) => ({
         description: it.description,
@@ -263,6 +265,7 @@ export class ReceiptForm implements OnInit {
     this.form.patchValue({
       receiptNo: inv.receiptNo,
       poNo: inv.poNo ?? '',
+      project: inv.project ?? '',
       issueDate: inv.issueDate,
       dueDate: inv.dueDate ?? '',
       issuerName: inv.issuerName,

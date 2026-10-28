@@ -157,12 +157,18 @@ export class QuotationReport extends DocumentPage {
     });
   }
 
+  /** เช่น "Quotation-PSPO-001-งานวางท่อรางน้ำ" */
+  protected fileBaseName(): string {
+    const q = this.quotation();
+    return DocumentPage.docFileName('Quotation', q?.quotationNo ?? String(this.id()), q?.project);
+  }
+
   /** PDF หน้าเดียว — ใบเสนอราคาไม่มีสำเนา และไม่มีป้าย (ต้นฉบับ) · กลไกการจับภาพอยู่ใน DocumentPage.exportPdf */
   protected async downloadPdf(): Promise<void> {
     if (this.pdfLoading()) return;
     this.errorMsg.set(null);
     try {
-      await this.exportPdf('quotation-doc', `quotation-${this.quotation()?.quotationNo ?? this.id()}.pdf`, ['']);
+      await this.exportPdf('quotation-doc', ['']);
     } catch {
       this.errorMsg.set('สร้าง PDF ไม่สำเร็จ');
     }

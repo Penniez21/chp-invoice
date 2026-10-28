@@ -12,6 +12,7 @@ public record InvoiceResponse(
         Long id,
         String invoiceNo,
         String poNo,
+        String project,
         LocalDate issueDate,
         LocalDate dueDate,
         String issuerName,
@@ -44,7 +45,7 @@ public record InvoiceResponse(
                 .map(it -> new Item(it.getDescription(), it.getQuantity(), it.getUnitPrice(), it.getLineTotal()))
                 .toList();
         return new InvoiceResponse(
-                inv.getId(), inv.getInvoiceNo(), inv.getPoNo(), inv.getIssueDate(), inv.getDueDate(),
+                inv.getId(), inv.getInvoiceNo(), inv.getPoNo(), inv.getProject(), inv.getIssueDate(), inv.getDueDate(),
                 inv.getIssuerName(), inv.getIssuerTaxId(), inv.getIssuerAddress(), inv.getIssuerEmail(), inv.getIssuerPhone(),
                 inv.getRecipientName(), inv.getRecipientTaxId(), inv.getRecipientAddress(), inv.getRecipientPhone(),
                 inv.getSubTotal(), inv.getWhtRate(), inv.getWhtAmount(), inv.getNetTotal(), inv.getGrandTotal(),

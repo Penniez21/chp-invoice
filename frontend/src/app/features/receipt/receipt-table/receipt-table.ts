@@ -41,7 +41,8 @@ export class ReceiptTable {
       (inv) =>
         inv.receiptNo.toLowerCase().includes(q) ||
         (inv.recipientName ?? '').toLowerCase().includes(q) ||
-        (inv.issuerName ?? '').toLowerCase().includes(q)
+        (inv.issuerName ?? '').toLowerCase().includes(q) ||
+        (inv.project ?? '').toLowerCase().includes(q)
     );
   });
 

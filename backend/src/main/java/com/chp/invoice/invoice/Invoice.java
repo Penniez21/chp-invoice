@@ -22,6 +22,10 @@ public class Invoice {
     @Column(name = "po_no", length = 50)
     private String poNo;
 
+    /** ชื่อโครงการ — ไม่บังคับ ใช้ตั้งชื่อไฟล์ PDF และแสดงในกล่องเลขที่เอกสาร */
+    @Column(name = "project", length = 255)
+    private String project;
+
     @Column(name = "issue_date", nullable = false)
     private LocalDate issueDate;
 
@@ -107,6 +111,8 @@ public class Invoice {
     public void setInvoiceNo(String invoiceNo) { this.invoiceNo = invoiceNo; }
     public String getPoNo() { return poNo; }
     public void setPoNo(String poNo) { this.poNo = poNo; }
+    public String getProject() { return project; }
+    public void setProject(String project) { this.project = project; }
     public LocalDate getIssueDate() { return issueDate; }
     public void setIssueDate(LocalDate issueDate) { this.issueDate = issueDate; }
     public LocalDate getDueDate() { return dueDate; }

@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -16,6 +17,7 @@ import java.util.List;
 public record InvoiceRequest(
         @NotBlank(message = "กรุณากรอกเลขที่ใบแจ้งหนี้") String invoiceNo,
         String poNo,
+        @Size(max = 255, message = "ชื่อโครงการยาวเกินไป") String project,
         @NotNull(message = "กรุณาระบุวันที่") LocalDate issueDate,
         LocalDate dueDate,
 

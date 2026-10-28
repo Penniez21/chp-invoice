@@ -160,12 +160,18 @@ export class InvoiceReport extends DocumentPage {
     });
   }
 
+  /** เช่น "Invoice-014-งานซ่อมหลังคาโกดัง" */
+  protected fileBaseName(): string {
+    const inv = this.invoice();
+    return DocumentPage.docFileName('Invoice', inv?.invoiceNo ?? String(this.id()), inv?.project);
+  }
+
   /** PDF 2 หน้า (ต้นฉบับ + สำเนา) — กลไกการจับภาพอยู่ใน DocumentPage.exportPdf */
   protected async downloadPdf(): Promise<void> {
     if (this.pdfLoading()) return;
     this.errorMsg.set(null);
     try {
-      await this.exportPdf('invoice-doc', `invoice-${this.invoice()?.invoiceNo ?? this.id()}.pdf`);
+      await this.exportPdf('invoice-doc');
     } catch {
       this.errorMsg.set('สร้าง PDF ไม่สำเร็จ');
     }

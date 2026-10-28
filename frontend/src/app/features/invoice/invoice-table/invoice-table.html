@@ -8,7 +8,7 @@
       (input)="onQuery($any($event.target).value)"
       (focus)="showSuggest.set(!!query())"
       (blur)="showSuggest.set(false)"
-      placeholder="ค้นหาเลขที่ / ชื่อผู้รับ…"
+      placeholder="ค้นหาเลขที่ / ชื่อผู้รับ / โครงการ…"
       class="inp pl-10" />
     <!-- autocomplete dropdown -->
     @if (showSuggest() && suggestions().length) {
@@ -59,6 +59,7 @@
           <span class="min-w-0 truncate text-sm font-medium text-ink">{{ inv.recipientName }}</span>
           <span class="shrink-0 whitespace-nowrap text-sm font-semibold text-ink">฿ {{ money(inv.netTotal) }}</span>
         </a>
+        @if (inv.project) { <p class="truncate text-xs text-ink-soft">{{ inv.project }}</p> }
       </li>
     }
   </ul>
@@ -69,6 +70,7 @@
         <tr class="border-b border-line text-left text-ink-soft">
           <th class="px-4 py-3 font-medium">เลขที่</th>
           <th class="px-4 py-3 font-medium">ผู้รับ</th>
+          <th class="px-4 py-3 font-medium">ชื่อโครงการ</th>
           <th class="px-4 py-3 font-medium">วันที่</th>
           <th class="px-4 py-3 text-right font-medium">ยอดสุทธิ</th>
           <th class="px-4 py-3 text-center font-medium">จัดการ</th>
@@ -80,9 +82,12 @@
               [routerLink]="['/invoices', inv.id, 'edit']"
               [class.opacity-40]="deletingId() === inv.id">
             <td class="px-4 py-3"><span class="chip">{{ inv.invoiceNo }}</span></td>
-            <td class="max-w-[260px] truncate px-4 py-3 font-medium text-ink">{{ inv.recipientName }}</td>
-            <td class="px-4 py-3 text-ink-soft">{{ formatDate(inv.issueDate) }}</td>
-            <td class="px-4 py-3 text-right font-semibold text-ink">฿ {{ money(inv.netTotal) }}</td>
+            <!-- ชื่อผู้รับ + ชื่อโครงการ: max-w-0 + ความกว้างเป็น % ให้สองคอลัมน์นี้หดตามพื้นที่ที่เหลือแล้วตัดด้วย …
+                 ตารางจึงพอดีการ์ดตั้งแต่จอแท็บเล็ต ไม่ต้องเลื่อนข้างหาปุ่มจัดการ — ชี้เมาส์ค้างไว้ดูชื่อเต็ม -->
+            <td class="w-[32%] max-w-0 truncate px-4 py-3 font-medium text-ink" [title]="inv.recipientName">{{ inv.recipientName }}</td>
+            <td class="w-[26%] max-w-0 truncate px-4 py-3 text-ink-soft" [title]="inv.project ?? ''">{{ inv.project || '-' }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-ink-soft">{{ formatDate(inv.issueDate) }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-ink">฿ {{ money(inv.netTotal) }}</td>
             <td class="px-4 py-3">
               <div class="flex items-center justify-center gap-1" (click)="$event.stopPropagation()">
                 <a [routerLink]="['/invoices', inv.id, 'report']" title="ดูรายงาน"

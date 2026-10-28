@@ -33,7 +33,7 @@
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
             <span class="lbl">เลขที่ใบเสร็จรับเงิน <span class="text-red-500">*</span></span>
-            <input formControlName="receiptNo" class="inp" placeholder="001" />
+            <input formControlName="receiptNo" class="inp" placeholder="PS-032" />
             @if (form.controls.receiptNo.touched && form.controls.receiptNo.invalid) { <span class="err">กรุณากรอกเลขที่</span> }
           </label>
           <label class="block">
@@ -48,6 +48,10 @@
             <span class="lbl">กำหนดส่ง</span>
             <app-date-picker formControlName="dueDate" ariaLabel="กำหนดส่ง" placeholder="ไม่ระบุ" />
           </div>
+          <label class="block sm:col-span-2">
+            <span class="lbl">ชื่อโครงการ</span>
+            <input formControlName="project" class="inp" maxlength="255" placeholder="ไม่ระบุก็ได้ — ใช้ตั้งชื่อไฟล์ เช่น Receipt-PS-032-ชื่อโครงการ" />
+          </label>
         </div>
       </section>
 

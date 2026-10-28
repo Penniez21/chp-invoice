@@ -113,6 +113,9 @@
           <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
             <span class="text-slate-500">ใบแจ้งหนี้ เลขที่</span><span class="text-right font-semibold text-slate-800">{{ inv.invoiceNo }}</span>
             <span class="text-slate-500">หมายเลขสั่งซื้อ</span><span class="text-right text-slate-700">{{ inv.poNo || '-' }}</span>
+            @if (inv.project) {
+              <span class="text-slate-500">โครงการ</span><span class="break-words text-right text-slate-700">{{ inv.project }}</span>
+            }
             <span class="text-slate-500">วันที่</span><span class="text-right text-slate-700">{{ formatDate(inv.issueDate) }}</span>
             <span class="text-slate-500">กำหนดส่ง</span><span class="text-right text-slate-700">{{ formatDate(inv.dueDate) }}</span>
           </div>
