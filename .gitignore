@@ -24,3 +24,4 @@ Thumbs.db
 
 # ===== เครื่องมือ/การตั้งค่าเฉพาะเครื่อง =====
 .claude/settings.local.json
+.claude/launch.json

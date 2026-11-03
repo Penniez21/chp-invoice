@@ -65,6 +65,16 @@ public class Invoice {
     @Column(name = "sub_total", nullable = false, precision = 14, scale = 2)
     private BigDecimal subTotal = BigDecimal.ZERO;
 
+    /** ราคาก่อนภาษีมูลค่าเพิ่ม = ยอดรวมย่อย − ภาษีมูลค่าเพิ่ม (ราคาที่กรอกถือว่ารวม VAT แล้ว) */
+    @Column(name = "before_vat", nullable = false, precision = 14, scale = 2)
+    private BigDecimal beforeVat = BigDecimal.ZERO;
+
+    @Column(name = "vat_rate", nullable = false, precision = 5, scale = 2)
+    private BigDecimal vatRate = new BigDecimal("7.00");
+
+    @Column(name = "vat_amount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal vatAmount = BigDecimal.ZERO;
+
     @Column(name = "wht_rate", nullable = false, precision = 5, scale = 2)
     private BigDecimal whtRate = new BigDecimal("3.00");
 
@@ -137,6 +147,12 @@ public class Invoice {
     public void setRecipientPhone(String recipientPhone) { this.recipientPhone = recipientPhone; }
     public BigDecimal getSubTotal() { return subTotal; }
     public void setSubTotal(BigDecimal subTotal) { this.subTotal = subTotal; }
+    public BigDecimal getBeforeVat() { return beforeVat; }
+    public void setBeforeVat(BigDecimal beforeVat) { this.beforeVat = beforeVat; }
+    public BigDecimal getVatRate() { return vatRate; }
+    public void setVatRate(BigDecimal vatRate) { this.vatRate = vatRate; }
+    public BigDecimal getVatAmount() { return vatAmount; }
+    public void setVatAmount(BigDecimal vatAmount) { this.vatAmount = vatAmount; }
     public BigDecimal getWhtRate() { return whtRate; }
     public void setWhtRate(BigDecimal whtRate) { this.whtRate = whtRate; }
     public BigDecimal getWhtAmount() { return whtAmount; }

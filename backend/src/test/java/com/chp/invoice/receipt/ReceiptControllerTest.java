@@ -45,15 +45,18 @@ class ReceiptControllerTest {
     @Test
     @WithMockUser(username = "admin", roles = "ADMIN")
     void create_computesTotalsLikeAnInvoice() throws Exception {
-        // 3,000 + 751.50 = 3,751.50 ; หัก 3% = 112.545 → 112.55 ; สุทธิ 3,638.95
+        // 3,000 + 751.50 = 3,751.50 (รวม VAT แล้ว) ; ก่อน VAT = 3,751.50×100/107 = 3,506.07 ; VAT = 245.43
+        // หัก 3% ของ 3,506.07 = 105.1821 → 105.18 ; สุทธิ = 3,751.50 − 105.18 = 3,646.32
         mvc.perform(post("/api/receipts")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(sampleReceiptJson("001")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.receiptNo").value("001"))
                 .andExpect(jsonPath("$.subTotal").value(3751.50))
-                .andExpect(jsonPath("$.whtAmount").value(112.55))
-                .andExpect(jsonPath("$.netTotal").value(3638.95))
+                .andExpect(jsonPath("$.beforeVat").value(3506.07))
+                .andExpect(jsonPath("$.vatAmount").value(245.43))
+                .andExpect(jsonPath("$.whtAmount").value(105.18))
+                .andExpect(jsonPath("$.netTotal").value(3646.32))
                 .andExpect(jsonPath("$.items.length()").value(2));
     }
 

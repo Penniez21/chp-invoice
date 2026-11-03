@@ -30,8 +30,11 @@ export interface InvoiceRequest {
 
 export interface InvoiceResponse extends InvoiceRequest {
   id: number;
-  subTotal: number;
-  whtAmount: number;
+  subTotal: number;          // ยอดรวมย่อย (ราคารวม VAT แล้ว)
+  beforeVat: number;         // ราคาก่อนภาษีมูลค่าเพิ่ม
+  vatRate: number;
+  vatAmount: number;
+  whtAmount: number;         // ภาษีหัก ณ ที่จ่าย คิดจากราคาก่อนภาษีมูลค่าเพิ่ม
   netTotal: number;
   grandTotal: number;
   createdAt: string;

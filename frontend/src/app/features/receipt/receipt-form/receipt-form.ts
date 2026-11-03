@@ -15,7 +15,8 @@ import { apiErrorMessage } from '../../../core/api-error';
 import { Recipient, RecipientService } from '../../settings/recipient.service';
 import { Issuer, IssuerService } from '../../settings/issuer.service';
 import { Combobox, ComboOption } from '../../../shared/combobox/combobox';
-import { baht, lineSatang, percentOf } from '../../../shared/money';
+import { baht, excludePercent, lineSatang, percentOf } from '../../../shared/money';
+import { VAT_RATE } from '../../../shared/document/vat';
 
 @Component({
   selector: 'app-receipt-form',
@@ -94,13 +95,19 @@ export class ReceiptForm implements OnInit {
   });
 
   // คิดยอดเป็นจำนวนเต็มสตางค์ตามกฎเดียวกับ backend (ReceiptService.apply) เพื่อให้ตรงกับที่บันทึก/พิมพ์เสมอ:
-  // แต่ละบรรทัดปัด 2 ตำแหน่ง HALF_UP → รวม → ภาษีหัก = ยอดรวม × อัตรา / 100 ปัด HALF_UP → สุทธิ = ยอดรวม − ภาษี
+  // แต่ละบรรทัดปัด 2 ตำแหน่ง HALF_UP → รวม → ถอดราคาก่อน VAT ออกจากยอดรวม
+  // → ภาษีหัก = ราคาก่อน VAT × อัตรา / 100 ปัด HALF_UP → สุทธิ = ยอดรวม(รวม VAT) − ภาษีหัก
   private readonly subTotalSatang = computed(() =>
     (this.value().items ?? []).reduce((s, it) => s + lineSatang(it?.quantity, it?.unitPrice), 0n)
   );
-  private readonly whtSatang = computed(() => percentOf(this.subTotalSatang(), this.value().whtRate));
+  // VAT = ส่วนต่าง (ไม่ใช่คูณอัตราตรง ๆ) ให้ ราคาก่อน VAT + VAT = ยอดรวมย่อย พอดีทุกสตางค์
+  private readonly beforeVatSatang = computed(() => excludePercent(this.subTotalSatang(), VAT_RATE));
+  private readonly whtSatang = computed(() => percentOf(this.beforeVatSatang(), this.value().whtRate));
 
+  protected readonly vatRate = VAT_RATE;
   protected readonly subTotal = computed(() => baht(this.subTotalSatang()));
+  protected readonly beforeVat = computed(() => baht(this.beforeVatSatang()));
+  protected readonly vatAmount = computed(() => baht(this.subTotalSatang() - this.beforeVatSatang()));
   protected readonly whtAmount = computed(() => baht(this.whtSatang()));
   protected readonly netTotal = computed(() => baht(this.subTotalSatang() - this.whtSatang()));
 

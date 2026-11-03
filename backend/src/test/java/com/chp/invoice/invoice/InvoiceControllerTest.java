@@ -49,16 +49,20 @@ class InvoiceControllerTest {
     @Test
     @WithMockUser(username = "admin", roles = "ADMIN")
     void create_computesTotalsAndWht3Percent() throws Exception {
-        // subTotal = 2*100 + 1*50 = 250 ; wht 3% = 7.50 ; net = 242.50
+        // subTotal = 2*100 + 1*50 = 250 (รวม VAT แล้ว) ; ก่อน VAT = 250×100/107 = 233.64 ; VAT = 16.36
+        // wht 3% ของ 233.64 = 7.0092 → 7.01 ; net = 250 − 7.01 = 242.99
         mvc.perform(post("/api/invoices")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(sampleInvoiceJson()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.subTotal").value(250.00))
+                .andExpect(jsonPath("$.beforeVat").value(233.64))
+                .andExpect(jsonPath("$.vatRate").value(7.00))
+                .andExpect(jsonPath("$.vatAmount").value(16.36))
                 .andExpect(jsonPath("$.whtRate").value(3.00))
-                .andExpect(jsonPath("$.whtAmount").value(7.50))
-                .andExpect(jsonPath("$.netTotal").value(242.50))
+                .andExpect(jsonPath("$.whtAmount").value(7.01))
+                .andExpect(jsonPath("$.netTotal").value(242.99))
                 .andExpect(jsonPath("$.grandTotal").value(250.00))
                 .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.items[0].lineTotal").value(200.00));

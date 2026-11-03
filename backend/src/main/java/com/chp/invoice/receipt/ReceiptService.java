@@ -20,6 +20,9 @@ public class ReceiptService {
     private static final int MONEY_SCALE = 2;
     private static final BigDecimal HUNDRED = new BigDecimal("100");
 
+    /** ภาษีมูลค่าเพิ่ม 7% — ราคาที่กรอกในรายการถือว่า "รวม VAT แล้ว" จึงถอดออกมาเป็นราคาก่อนภาษีมูลค่าเพิ่ม */
+    private static final BigDecimal VAT_RATE = new BigDecimal("7.00");
+
     /** รูปแบบเลขที่ใบเสร็จ: PS- + เลขรัน 3 หลัก (PS-032, PS-033, …) */
     private static final String RECEIPT_PREFIX = "PS-";
     private static final Pattern RECEIPT_RUNNING = Pattern.compile("^PS-(\\d{1,18})$", Pattern.CASE_INSENSITIVE);
@@ -177,16 +180,26 @@ public class ReceiptService {
         }
         subTotal = subTotal.setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 
+        // ราคาที่กรอกรวม VAT แล้ว: ถอดราคาก่อน VAT = ยอดรวมย่อย × 100 / (100 + อัตรา) แล้ว VAT = ส่วนต่าง
+        // (ใช้ส่วนต่างแทนการคูณอัตราตรง ๆ เพื่อให้ ก่อน VAT + VAT = ยอดรวมย่อย พอดีทุกสตางค์ เหมือนใบเสนอราคา)
+        BigDecimal beforeVat = subTotal.multiply(HUNDRED)
+                .divide(HUNDRED.add(VAT_RATE), MONEY_SCALE, RoundingMode.HALF_UP);
+        BigDecimal vatAmount = subTotal.subtract(beforeVat);
+
+        // ภาษีหัก ณ ที่จ่ายคิดจาก "ราคาก่อนภาษีมูลค่าเพิ่ม" แต่หักออกจากยอดรวมที่รวม VAT แล้ว
         BigDecimal whtRate = nz(req.whtRate());
-        BigDecimal whtAmount = subTotal.multiply(whtRate)
+        BigDecimal whtAmount = beforeVat.multiply(whtRate)
                 .divide(HUNDRED, MONEY_SCALE, RoundingMode.HALF_UP);
         BigDecimal netTotal = subTotal.subtract(whtAmount).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 
         r.setSubTotal(subTotal);
+        r.setBeforeVat(beforeVat);
+        r.setVatRate(VAT_RATE);
+        r.setVatAmount(vatAmount);
         r.setWhtRate(whtRate);
         r.setWhtAmount(whtAmount);
         r.setNetTotal(netTotal);
-        r.setGrandTotal(subTotal); // ไม่มี VAT — ยอดรวมทั้งหมด = ยอดรวมย่อย (เหมือนใบแจ้งหนี้)
+        r.setGrandTotal(subTotal); // ยอดรวมทั้งหมด = ยอดรวมย่อย (ราคารวม VAT อยู่แล้ว)
     }
 
     private static BigDecimal nz(BigDecimal v) {

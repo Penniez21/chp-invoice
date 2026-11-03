@@ -183,6 +183,14 @@
             <span class="text-slate-500">ยอดรวมย่อย</span>
             <span class="font-medium text-slate-700">{{ money(inv.subTotal) }}</span>
           </div>
+          <div class="flex justify-between py-0.5">
+            <span class="text-slate-500">ราคาก่อนภาษีมูลค่าเพิ่ม</span>
+            <span class="font-medium text-slate-700">{{ money(inv.beforeVat) }}</span>
+          </div>
+          <div class="flex justify-between py-0.5">
+            <span class="text-slate-500">ภาษีมูลค่าเพิ่ม {{ inv.vatRate }}%</span>
+            <span class="font-medium text-slate-700">{{ money(inv.vatAmount) }}</span>
+          </div>
           <div class="my-1 flex items-center justify-between rounded-md bg-[#eaf7f4] px-3 py-2">
             <span class="font-semibold text-[#0e7d70]">ทั้งหมด</span>
             <span class="text-[15px] font-bold text-[#0e7d70]">{{ money(inv.subTotal) }}</span>

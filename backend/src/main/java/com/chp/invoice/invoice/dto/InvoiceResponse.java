@@ -25,6 +25,9 @@ public record InvoiceResponse(
         String recipientAddress,
         String recipientPhone,
         BigDecimal subTotal,
+        BigDecimal beforeVat,
+        BigDecimal vatRate,
+        BigDecimal vatAmount,
         BigDecimal whtRate,
         BigDecimal whtAmount,
         BigDecimal netTotal,
@@ -48,7 +51,7 @@ public record InvoiceResponse(
                 inv.getId(), inv.getInvoiceNo(), inv.getPoNo(), inv.getProject(), inv.getIssueDate(), inv.getDueDate(),
                 inv.getIssuerName(), inv.getIssuerTaxId(), inv.getIssuerAddress(), inv.getIssuerEmail(), inv.getIssuerPhone(),
                 inv.getRecipientName(), inv.getRecipientTaxId(), inv.getRecipientAddress(), inv.getRecipientPhone(),
-                inv.getSubTotal(), inv.getWhtRate(), inv.getWhtAmount(), inv.getNetTotal(), inv.getGrandTotal(),
+                inv.getSubTotal(), inv.getBeforeVat(), inv.getVatRate(), inv.getVatAmount(), inv.getWhtRate(), inv.getWhtAmount(), inv.getNetTotal(), inv.getGrandTotal(),
                 inv.getCreatedAt(), items
         );
     }

@@ -214,6 +214,14 @@
               <span class="text-ink-soft">ยอดรวมย่อย</span>
               <span class="whitespace-nowrap font-semibold text-ink">฿ {{ formatMoney(subTotal()) }}</span>
             </div>
+            <div class="flex justify-between gap-3">
+              <span class="text-ink-soft">ราคาก่อนภาษีมูลค่าเพิ่ม</span>
+              <span class="whitespace-nowrap font-semibold text-ink">฿ {{ formatMoney(beforeVat()) }}</span>
+            </div>
+            <div class="flex justify-between gap-3">
+              <span class="text-ink-soft">ภาษีมูลค่าเพิ่ม {{ vatRate }}% (รวมอยู่ในราคาแล้ว)</span>
+              <span class="whitespace-nowrap font-semibold text-ink">฿ {{ formatMoney(vatAmount()) }}</span>
+            </div>
             <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
               <span class="flex items-center gap-2 whitespace-nowrap text-ink-soft">
                 หัก ภาษี ณ ที่จ่าย
