@@ -83,6 +83,12 @@ export class QuotationForm implements OnInit {
     sellerAddress: [''],
     sellerPhone: ['', [thaiPhone]],
     sellerEmail: ['', [Validators.email]],
+    // โลโก้จัดการที่เมนูผู้เสนอราคาเท่านั้น (ผู้ใช้ขอ) — ฟอร์มนี้ไม่มีช่องให้แก้
+    // เก็บไว้แค่ให้เลือกผู้เสนอราคาแล้วโลโก้ติดมา และแก้ไขใบเดิมแล้วโลโก้เดิมไม่หาย
+    sellerLogo: [null as string | null],
+    sellerContactName: [''],
+    sellerContactPhone: ['', [thaiPhone]],
+    sellerContactEmail: ['', [Validators.email]],
     customerName: ['', Validators.required],
     customerTaxId: ['', [thaiTaxId]],
     customerAddress: [''],
@@ -175,6 +181,10 @@ export class QuotationForm implements OnInit {
       sellerAddress: q.address ?? '',
       sellerPhone: q.phone ?? '',
       sellerEmail: q.email ?? '',
+      sellerLogo: q.logo,
+      sellerContactName: q.contactName ?? '',
+      sellerContactPhone: q.contactPhone ?? '',
+      sellerContactEmail: q.contactEmail ?? '',
     });
     this.toast.info('เติมข้อมูลผู้เสนอราคาแล้ว', q.name);
   }
@@ -257,6 +267,10 @@ export class QuotationForm implements OnInit {
       sellerAddress: orNull(raw.sellerAddress),
       sellerPhone: orNull(raw.sellerPhone),
       sellerEmail: orNull(raw.sellerEmail),
+      sellerLogo: raw.sellerLogo,
+      sellerContactName: orNull(raw.sellerContactName),
+      sellerContactPhone: orNull(raw.sellerContactPhone),
+      sellerContactEmail: orNull(raw.sellerContactEmail),
       customerName: raw.customerName,
       customerTaxId: orNull(raw.customerTaxId),
       customerAddress: orNull(raw.customerAddress),
@@ -324,6 +338,10 @@ export class QuotationForm implements OnInit {
       sellerAddress: q.sellerAddress ?? '',
       sellerPhone: q.sellerPhone ?? '',
       sellerEmail: q.sellerEmail ?? '',
+      sellerLogo: q.sellerLogo ?? null,
+      sellerContactName: q.sellerContactName ?? '',
+      sellerContactPhone: q.sellerContactPhone ?? '',
+      sellerContactEmail: q.sellerContactEmail ?? '',
       customerName: q.customerName,
       customerTaxId: q.customerTaxId ?? '',
       customerAddress: q.customerAddress ?? '',

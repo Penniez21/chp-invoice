@@ -15,12 +15,17 @@ import { apiErrorMessage } from '../../../core/api-error';
 import { Recipient, RecipientService } from '../../settings/recipient.service';
 import { Issuer, IssuerService } from '../../settings/issuer.service';
 import { Combobox, ComboOption } from '../../../shared/combobox/combobox';
-import { baht, excludePercent, lineSatang, percentOf } from '../../../shared/money';
-import { VAT_RATE } from '../../../shared/document/vat';
+import { baht, lineSatang } from '../../../shared/money';
+import { VAT_MODES, VAT_RATE, VatMode, documentTotals } from '../../../shared/document/vat';
+import { PAYMENT_METHODS, PaymentMethod, paymentHint } from '../../../shared/document/payment';
+import { looksLikeCompany } from '../../../shared/document/branch';
+import { BranchInput } from '../../../shared/branch-input/branch-input';
+import { Switch } from '../../../shared/switch/switch';
+import { TransferAccounts } from '../../../shared/document/transfer-accounts';
 
 @Component({
   selector: 'app-receipt-form',
-  imports: [ReactiveFormsModule, RouterLink, Stepper, Spinner, AddressPicker, DatePicker, DigitsOnly, Combobox],
+  imports: [ReactiveFormsModule, RouterLink, Stepper, Spinner, AddressPicker, DatePicker, DigitsOnly, Combobox, BranchInput, Switch, TransferAccounts],
   templateUrl: './receipt-form.html',
 })
 export class ReceiptForm implements OnInit {
@@ -79,37 +84,58 @@ export class ReceiptForm implements OnInit {
     dueDate: [this.today()],
     issuerName: ['', Validators.required],
     issuerTaxId: ['', [thaiTaxId]],
+    issuerBranch: [null as string | null],
     issuerAddress: [''],
     issuerEmail: ['', [Validators.email]],
     issuerPhone: ['', [thaiPhone]],
     recipientName: ['', Validators.required],
     recipientTaxId: ['', [thaiTaxId]],
+    recipientBranch: [null as string | null],
     recipientAddress: [''],
     recipientPhone: ['', [thaiPhone]],
     whtRate: [3, [Validators.required, Validators.min(0), Validators.max(100)]],
+    vatMode: ['INCLUDED' as VatMode],
+    vatRate: [VAT_RATE, [Validators.required, Validators.min(0), Validators.max(100)]],
+    taxInvoice: [false],
+    paymentMethod: ['' as PaymentMethod | ''],
+    chequeBank: [''],
+    chequeBranch: [''],
+    chequeNo: [''],
+    chequeDate: [''],
     items: this.fb.array([this.newItem()]),
   });
+
+  protected readonly vatModes = VAT_MODES;
+  protected readonly paymentMethods = PAYMENT_METHODS;
+  protected readonly paymentHint = paymentHint;
 
   private readonly value = toSignal(this.form.valueChanges, {
     initialValue: this.form.getRawValue(),
   });
 
-  // คิดยอดเป็นจำนวนเต็มสตางค์ตามกฎเดียวกับ backend (ReceiptService.apply) เพื่อให้ตรงกับที่บันทึก/พิมพ์เสมอ:
-  // แต่ละบรรทัดปัด 2 ตำแหน่ง HALF_UP → รวม → ถอดราคาก่อน VAT ออกจากยอดรวม
-  // → ภาษีหัก = ราคาก่อน VAT × อัตรา / 100 ปัด HALF_UP → สุทธิ = ยอดรวม(รวม VAT) − ภาษีหัก
+  // คิดยอดเป็นจำนวนเต็มสตางค์ตามกฎเดียวกับ backend (DocumentTotals) เพื่อให้ตรงกับที่บันทึก/พิมพ์เสมอ:
+  // แต่ละบรรทัดปัด 2 ตำแหน่ง HALF_UP → รวม → VAT ตามแบบที่เลือก → ภาษีหักจากราคาก่อน VAT → ชำระ = ทั้งหมด − ภาษีหัก
   private readonly subTotalSatang = computed(() =>
     (this.value().items ?? []).reduce((s, it) => s + lineSatang(it?.quantity, it?.unitPrice), 0n)
   );
-  // VAT = ส่วนต่าง (ไม่ใช่คูณอัตราตรง ๆ) ให้ ราคาก่อน VAT + VAT = ยอดรวมย่อย พอดีทุกสตางค์
-  private readonly beforeVatSatang = computed(() => excludePercent(this.subTotalSatang(), VAT_RATE));
-  private readonly whtSatang = computed(() => percentOf(this.beforeVatSatang(), this.value().whtRate));
+  private readonly totals = computed(() =>
+    documentTotals(this.subTotalSatang(), this.value().vatMode, this.value().vatRate, this.value().whtRate)
+  );
 
-  protected readonly vatRate = VAT_RATE;
+  protected readonly vatMode = computed(() => this.value().vatMode ?? 'INCLUDED');
+  protected readonly paymentMethod = computed(() => this.value().paymentMethod ?? '');
   protected readonly subTotal = computed(() => baht(this.subTotalSatang()));
-  protected readonly beforeVat = computed(() => baht(this.beforeVatSatang()));
-  protected readonly vatAmount = computed(() => baht(this.subTotalSatang() - this.beforeVatSatang()));
-  protected readonly whtAmount = computed(() => baht(this.whtSatang()));
-  protected readonly netTotal = computed(() => baht(this.subTotalSatang() - this.whtSatang()));
+  protected readonly beforeVat = computed(() => baht(this.totals().beforeVat));
+  protected readonly vatAmount = computed(() => baht(this.totals().vat));
+  protected readonly grandTotal = computed(() => baht(this.totals().grand));
+  protected readonly whtAmount = computed(() => baht(this.totals().wht));
+  protected readonly netTotal = computed(() => baht(this.totals().net));
+
+  /**
+   * ผู้ใช้กดสวิตช์ "ใบกำกับภาษี" เองแล้วหรือยัง — ถ้ายัง ระบบติ๊กให้ตามชื่อผู้ออก
+   * (กรณีออกในนาม บจก. ต้องออกใบกำกับภาษีด้วย — ความต้องการของผู้ใช้) · โหมดแก้ไขใช้ค่าที่บันทึกไว้เสมอ
+   */
+  private taxInvoiceTouched = false;
 
   ngOnInit(): void {
     const idVal = this.id();
@@ -124,6 +150,11 @@ export class ReceiptForm implements OnInit {
     this.form.valueChanges.subscribe(() => {
       if (this.editingId() === null) this.draftService.save(this.form.getRawValue());
     });
+
+    // ใบกำกับภาษี: ไม่มี VAT ออกไม่ได้ (ปิดสวิตช์) · ยังไม่ได้กดเอง → ติ๊กตามชื่อผู้ออก
+    this.form.controls.vatMode.valueChanges.subscribe(() => this.syncTaxInvoice());
+    this.form.controls.issuerName.valueChanges.subscribe(() => this.syncTaxInvoice());
+    this.syncTaxInvoice();
 
     // รายชื่อผู้รับที่บันทึกไว้ — ล้มเหลวก็ไม่เป็นไร ยังกรอกเองได้ จึงไม่ต้องรบกวนด้วย toast
     this.recipientService.list().subscribe({
@@ -154,6 +185,43 @@ export class ReceiptForm implements OnInit {
     });
   }
 
+  protected setVatMode(mode: VatMode): void {
+    this.form.controls.vatMode.setValue(mode);
+  }
+
+  protected setPaymentMethod(method: PaymentMethod | ''): void {
+    this.form.controls.paymentMethod.setValue(method);
+  }
+
+  /** ผู้ใช้กดสวิตช์ใบกำกับภาษีเอง → เลิกติ๊กอัตโนมัติตามชื่อผู้ออก */
+  protected onTaxInvoiceToggled(): void {
+    this.taxInvoiceTouched = true;
+  }
+
+  /** ค่าสวิตช์ก่อนถูกบังคับปิดเพราะเลือก "ไม่มี VAT" — เปลี่ยนกลับเป็นมี VAT แล้วคืนค่าเดิมให้ */
+  private taxInvoiceBeforeNone: boolean | null = null;
+
+  private syncTaxInvoice(): void {
+    const ctrl = this.form.controls.taxInvoice;
+    if (this.form.controls.vatMode.value === 'NONE') {
+      if (ctrl.enabled) {
+        this.taxInvoiceBeforeNone = ctrl.value;
+        ctrl.disable({ emitEvent: false });
+      }
+      if (ctrl.value) ctrl.setValue(false, { emitEvent: false });
+      return;
+    }
+    if (ctrl.disabled) {
+      ctrl.enable({ emitEvent: false });
+      if (this.taxInvoiceBeforeNone !== null) ctrl.setValue(this.taxInvoiceBeforeNone, { emitEvent: false });
+      this.taxInvoiceBeforeNone = null;
+    }
+    if (!this.taxInvoiceTouched && this.editingId() === null) {
+      const auto = looksLikeCompany(this.form.controls.issuerName.value);
+      if (ctrl.value !== auto) ctrl.setValue(auto, { emitEvent: false });
+    }
+  }
+
   /** เลือกผู้ออกจาก dropdown → เติมข้อมูลลงฟอร์ม (ยังแก้ทับได้ตามปกติ) */
   protected applySavedIssuer(idValue: string): void {
     this.pickedIssuerId.set(idValue);
@@ -163,6 +231,7 @@ export class ReceiptForm implements OnInit {
     this.form.patchValue({
       issuerName: i.name,
       issuerTaxId: i.taxId ?? '',
+      issuerBranch: i.branch ?? null,
       issuerAddress: i.address ?? '',
       issuerEmail: i.email ?? '',
       issuerPhone: i.phone ?? '',
@@ -179,6 +248,7 @@ export class ReceiptForm implements OnInit {
     this.form.patchValue({
       recipientName: r.name,
       recipientTaxId: r.taxId ?? '',
+      recipientBranch: r.branch ?? null,
       recipientAddress: r.address ?? '',
       recipientPhone: r.phone ?? '',
     });
@@ -219,11 +289,21 @@ export class ReceiptForm implements OnInit {
     }
     this.saving.set(true);
     const raw = this.form.getRawValue();
+    const cheque = raw.paymentMethod === 'CHEQUE';
     const payload: ReceiptRequest = {
       ...raw,
       poNo: raw.poNo || null,
       project: raw.project.trim() || null,
       dueDate: raw.dueDate || null,
+      issuerBranch: raw.issuerBranch || null,
+      recipientBranch: raw.recipientBranch || null,
+      vatRate: this.n(raw.vatRate),
+      taxInvoice: raw.taxInvoice && raw.vatMode !== 'NONE',
+      paymentMethod: raw.paymentMethod || null,
+      chequeBank: cheque ? raw.chequeBank.trim() || null : null,
+      chequeBranch: cheque ? raw.chequeBranch.trim() || null : null,
+      chequeNo: cheque ? raw.chequeNo.trim() || null : null,
+      chequeDate: cheque ? raw.chequeDate || null : null,
       items: raw.items.map((it) => ({
         description: it.description,
         quantity: this.n(it.quantity),
@@ -277,15 +357,26 @@ export class ReceiptForm implements OnInit {
       dueDate: inv.dueDate ?? '',
       issuerName: inv.issuerName,
       issuerTaxId: inv.issuerTaxId ?? '',
+      issuerBranch: inv.issuerBranch ?? null,
       issuerAddress: inv.issuerAddress ?? '',
       issuerEmail: inv.issuerEmail ?? '',
       issuerPhone: inv.issuerPhone ?? '',
       recipientName: inv.recipientName,
       recipientTaxId: inv.recipientTaxId ?? '',
+      recipientBranch: inv.recipientBranch ?? null,
       recipientAddress: inv.recipientAddress ?? '',
       recipientPhone: inv.recipientPhone ?? '',
       whtRate: inv.whtRate,
+      vatMode: inv.vatMode ?? 'INCLUDED',
+      vatRate: inv.vatRate ?? VAT_RATE,
+      taxInvoice: inv.taxInvoice ?? false,
+      paymentMethod: inv.paymentMethod ?? '',
+      chequeBank: inv.chequeBank ?? '',
+      chequeBranch: inv.chequeBranch ?? '',
+      chequeNo: inv.chequeNo ?? '',
+      chequeDate: inv.chequeDate ?? '',
     });
+    this.syncTaxInvoice();
     this.setItems(inv.items.map((it) => this.newItem(it.description, it.quantity, it.unitPrice)));
   }
 
@@ -295,6 +386,8 @@ export class ReceiptForm implements OnInit {
       this.setItems(items.map((it) => this.newItem(it.description, it.quantity, it.unitPrice)));
     }
     this.form.patchValue(draft as any);
+    // draft คือสิ่งที่ผู้ใช้เลือกไว้เองก่อนหน้า — ไม่ติ๊กสวิตช์ใบกำกับภาษีทับ
+    this.taxInvoiceTouched = true;
   }
 
   private setItems(groups: ReturnType<ReceiptForm['newItem']>[]): void {

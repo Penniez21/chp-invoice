@@ -6,6 +6,7 @@ public record RecipientResponse(
         Long id,
         String name,
         String taxId,
+        String branch,
         String address,
         String phone
 ) {
@@ -14,6 +15,7 @@ public record RecipientResponse(
                 r.getId(),
                 r.getName(),
                 r.getTaxId(),
+                r.getBranch(),
                 r.getAddress(),
                 r.getPhone());
     }

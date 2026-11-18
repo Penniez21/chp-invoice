@@ -27,6 +27,10 @@ public class Issuer {
     @Column(name = "tax_id", length = 13)
     private String taxId;
 
+    /** รหัสสาขา 5 หลักแบบกรมสรรพากร: 00000 = สำนักงานใหญ่ · null = ไม่ระบุ (ใช้บนใบกำกับภาษี) */
+    @Column(length = 5)
+    private String branch;
+
     @Column(columnDefinition = "TEXT")
     private String address;
 
@@ -60,6 +64,8 @@ public class Issuer {
     public void setName(String name) { this.name = name; }
     public String getTaxId() { return taxId; }
     public void setTaxId(String taxId) { this.taxId = taxId; }
+    public String getBranch() { return branch; }
+    public void setBranch(String branch) { this.branch = branch; }
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
     public String getEmail() { return email; }

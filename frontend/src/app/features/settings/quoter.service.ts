@@ -10,9 +10,17 @@ export interface Quoter {
   address: string | null;
   phone: string | null;
   email: string | null;
+  /** data URL (data:image/png;base64,...) — แสดงที่หัวใบเสนอราคา */
+  logo: string | null;
+  /** บุคคลผู้เสนอราคา (คนที่ดูแลใบเสนอราคา) — แสดงในกรอบเหลือง ไม่ใช่ข้อมูลบริษัทที่หัวกระดาษ */
+  contactName: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  /** มีค่าเฉพาะตอนบันทึก: จำนวนใบเสนอราคาเดิม (ที่ยังไม่มีโลโก้) ที่เพิ่งได้โลโก้นี้ไปด้วย */
+  logoAppliedToQuotations?: number | null;
 }
 
-export type QuoterPayload = Omit<Quoter, 'id'>;
+export type QuoterPayload = Omit<Quoter, 'id' | 'logoAppliedToQuotations'>;
 
 @Injectable({ providedIn: 'root' })
 export class QuoterService {

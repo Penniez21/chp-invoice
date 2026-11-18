@@ -50,6 +50,7 @@ public class RecipientService {
     private void apply(Recipient r, RecipientRequest req) {
         r.setName(req.name().trim());
         r.setTaxId(trimOrNull(req.taxId()));
+        r.setBranch(trimOrNull(req.branch()));
         r.setAddress(trimOrNull(req.address()));
         r.setPhone(trimOrNull(req.phone()));
     }

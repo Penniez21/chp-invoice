@@ -75,36 +75,15 @@
     <div [id]="docId"
          class="animate-in invoice-doc mx-auto flex aspect-[210/297] w-full flex-col rounded-lg border border-slate-200 bg-white p-9 text-[12px] leading-5 text-slate-700 shadow-sm print:border-0 print:shadow-none">
 
-      <!-- header -->
-      <div class="flex items-start justify-end">
-        <div class="text-right">
+      <!-- ชิ้นส่วนที่ใช้ทั้งแบบมีโลโก้และไม่มีโลโก้:
+           ชื่อเอกสาร · ข้อมูลลูกค้า (รวมโครงการ/สถานที่ ตามใบตัวอย่าง) · กล่องเลขที่เอกสาร (เขียว) · บุคคลผู้เสนอราคา (เหลือง) -->
+      <ng-template #docTitle>
+        <div class="shrink-0 text-right">
           <h1 class="text-[26px] font-bold leading-[1.35] text-[#0e9e8e]">ใบเสนอราคา</h1>
           <p class="text-[10px] leading-none tracking-wide text-slate-400">QUOTATION</p>
         </div>
-      </div>
-
-      <!-- แถวบน: ผู้เสนอ (ซ้าย — ข้อมูลผู้เสนอราคาแสดงที่นี่ที่เดียว) + ข้อมูลเอกสาร (กล่องเขียว) -->
-      <div class="mt-6 flex justify-between gap-8">
-        <div class="min-w-0 leading-[1.55]">
-          <div class="grid grid-cols-[70px_1fr] gap-x-2">
-            <span class="text-slate-400">ผู้เสนอ :</span><span class="font-semibold text-slate-800">{{ q.sellerName }}</span>
-            <span class="text-slate-400">ที่อยู่ :</span><span class="whitespace-pre-line">{{ q.sellerAddress || '-' }}</span>
-            <span class="text-slate-400">เลขภาษี :</span><span>{{ q.sellerTaxId || '-' }}</span>
-            <span class="text-slate-400">โทร :</span><span>{{ q.sellerPhone || '-' }}</span>
-            <span class="text-slate-400">อีเมล :</span><span class="break-all">{{ q.sellerEmail || '-' }}</span>
-          </div>
-        </div>
-        <div class="w-60 shrink-0 self-start rounded-lg bg-[#eaf7f4] p-3.5">
-          <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-            <span class="text-slate-500">ใบเสนอราคา เลขที่</span><span class="text-right font-semibold text-slate-800">{{ q.quotationNo }}</span>
-            <span class="text-slate-500">วันที่</span><span class="text-right text-slate-700">{{ formatDate(q.issueDate) }}</span>
-            <span class="text-slate-500">เลขที่ลูกค้า</span><span class="text-right text-slate-700">{{ q.customerNo || '-' }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- แถวล่าง: ลูกค้า (ซ้าย) + โครงการ/สถานที่ (กล่องเหลือง ใต้เลขที่เอกสาร แบบช่อง "ชื่องาน") -->
-      <div class="mt-4 flex justify-between gap-8 border-t border-slate-100 pt-3.5">
+      </ng-template>
+      <ng-template #customerInfo>
         <div class="min-w-0 leading-[1.55]">
           <div class="grid grid-cols-[70px_1fr] gap-x-2">
             <span class="text-slate-400">ลูกค้า :</span><span class="font-semibold text-slate-800">{{ q.customerName }}</span>
@@ -114,14 +93,93 @@
             <span class="text-slate-400">โทร :</span><span>{{ q.customerPhone || '-' }}</span>
             <span class="text-slate-400">อีเมล :</span><span class="break-all">{{ q.customerEmail || '-' }}</span>
           </div>
-        </div>
-        <div class="w-60 shrink-0 self-start rounded-lg bg-[#fdf7e6] p-3.5 leading-[1.55]">
-          <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-            <span class="text-[#a67e2c]">โครงการ</span><span class="font-medium text-slate-800">{{ q.project || '-' }}</span>
-            <span class="text-[#a67e2c]">สถานที่</span><span class="text-slate-700">{{ q.location || '-' }}</span>
+          <!-- โครงการ/สถานที่แยกเป็นอีกกลุ่ม เว้นระยะจากข้อมูลลูกค้า ไม่ให้อ่านเป็นก้อนเดียวกัน -->
+          <div class="mt-2.5 grid grid-cols-[70px_1fr] gap-x-2">
+            <span class="text-slate-400">โครงการ :</span><span class="font-medium text-slate-800">{{ q.project || '-' }}</span>
+            <span class="text-slate-400">สถานที่ :</span><span>{{ q.location || '-' }}</span>
           </div>
         </div>
-      </div>
+      </ng-template>
+      <ng-template #docBox>
+        <div class="rounded-lg bg-[#eaf7f4] p-3.5">
+          <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+            <span class="text-slate-500">ใบเสนอราคา เลขที่</span><span class="text-right font-semibold text-slate-800">{{ q.quotationNo }}</span>
+            <span class="text-slate-500">วันที่</span><span class="text-right text-slate-700">{{ formatDate(q.issueDate) }}</span>
+            <span class="text-slate-500">เลขที่ลูกค้า</span><span class="text-right text-slate-700">{{ q.customerNo || '-' }}</span>
+          </div>
+        </div>
+      </ng-template>
+      <!-- กรอบเหลือง = บุคคลผู้เสนอราคา (คนที่ดูแลใบนี้) แบบใบตัวอย่าง · ไม่ได้กรอกเลยก็ไม่แสดงกรอบ -->
+      <ng-template #contactBox>
+        @if (q.sellerContactName || q.sellerContactPhone || q.sellerContactEmail) {
+          <div class="rounded-lg bg-[#fdf7e6] p-3.5 leading-[1.55]">
+            <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+              <span class="text-[#a67e2c]">ผู้เสนอราคา</span><span class="text-right font-medium text-slate-800">{{ q.sellerContactName || '-' }}</span>
+              <span class="text-[#a67e2c]">โทร</span><span class="text-right text-slate-700">{{ q.sellerContactPhone || '-' }}</span>
+              <span class="text-[#a67e2c]">อีเมล</span><span class="break-all text-right text-slate-700">{{ q.sellerContactEmail || '-' }}</span>
+            </div>
+          </div>
+        }
+      </ng-template>
+
+      @if (q.sellerLogo) {
+        <!-- มีโลโก้: หัวกระดาษแบบ letterhead เหมือนใบต้นฉบับของผู้ใช้ — โลโก้ + ข้อมูลผู้เสนอ (ซ้ายบน) · ชื่อเอกสาร (ขวา) · เส้นคั่น
+             ข้อมูลผู้เสนออยู่ติดโลโก้ ไม่มีป้าย "ผู้เสนอ :" ให้ซ้ำกับชื่อในโลโก้ และโลโก้ไม่ลอยอยู่แถวบนตัวเดียว
+             กล่องเลขที่เอกสาร + บุคคลผู้เสนอราคาซ้อนกันทางขวาของลูกค้า · โครงการ/สถานที่อยู่ใต้ข้อมูลลูกค้า (แบบใบตัวอย่าง)
+             logoSrc = โลโก้ที่ย้อมเป็นโทนตัวหนังสือแล้ว (ดู LOGO_TONE) · จองความสูงไว้ก่อน หัวกระดาษจะไม่กระตุกตอนย้อมเสร็จ -->
+        <div class="flex items-start gap-4">
+          <div class="flex h-[80px] min-w-[80px] shrink-0 items-start">
+            @if (logoSrc(); as logo) {
+              <img [src]="logo" alt="โลโก้ผู้เสนอราคา" class="h-full w-auto max-w-[170px] object-contain object-left" />
+            }
+          </div>
+          <div class="min-w-0 flex-1 leading-[1.55]">
+            <p class="text-[14px] font-bold leading-snug text-slate-800">{{ q.sellerName }}</p>
+            @if (q.sellerAddress) { <p class="whitespace-pre-line">{{ q.sellerAddress }}</p> }
+            <!-- เลขผู้เสียภาษี / โทร / อีเมล คนละบรรทัด — อยู่บรรทัดเดียวกันแล้วอ่านยาก (ผู้ใช้ขอ) -->
+            @if (q.sellerTaxId) { <p><span class="text-slate-400">เลขประจำตัวผู้เสียภาษี</span> {{ q.sellerTaxId }}</p> }
+            @if (q.sellerPhone) { <p><span class="text-slate-400">โทร</span> {{ q.sellerPhone }}</p> }
+            <!-- &ngsp; เพราะ Angular ตัดช่องว่างล้วน ๆ ระหว่างสอง span ทิ้ง ป้ายจะติดกับอีเมล -->
+            @if (q.sellerEmail) { <p><span class="text-slate-400">อีเมล</span>&ngsp;<span class="break-all">{{ q.sellerEmail }}</span></p> }
+          </div>
+          <ng-container *ngTemplateOutlet="docTitle" />
+        </div>
+
+        <div class="mt-5 flex justify-between gap-8 border-t border-slate-200 pt-4">
+          <ng-container *ngTemplateOutlet="customerInfo" />
+          <div class="w-60 shrink-0 space-y-2.5 self-start">
+            <ng-container *ngTemplateOutlet="docBox" />
+            <ng-container *ngTemplateOutlet="contactBox" />
+          </div>
+        </div>
+      } @else {
+        <!-- ไม่มีโลโก้: แบบเดิม — ชื่อเอกสารขวาบน · แถวผู้เสนอ + กล่องเลขที่เอกสาร · แถวลูกค้า + บุคคลผู้เสนอราคา -->
+        <div class="flex justify-end">
+          <ng-container *ngTemplateOutlet="docTitle" />
+        </div>
+
+        <div class="mt-6 flex justify-between gap-8">
+          <div class="min-w-0 leading-[1.55]">
+            <div class="grid grid-cols-[70px_1fr] gap-x-2">
+              <span class="text-slate-400">ผู้เสนอ :</span><span class="font-semibold text-slate-800">{{ q.sellerName }}</span>
+              <span class="text-slate-400">ที่อยู่ :</span><span class="whitespace-pre-line">{{ q.sellerAddress || '-' }}</span>
+              <span class="text-slate-400">เลขภาษี :</span><span>{{ q.sellerTaxId || '-' }}</span>
+              <span class="text-slate-400">โทร :</span><span>{{ q.sellerPhone || '-' }}</span>
+              <span class="text-slate-400">อีเมล :</span><span class="break-all">{{ q.sellerEmail || '-' }}</span>
+            </div>
+          </div>
+          <div class="w-60 shrink-0 self-start">
+            <ng-container *ngTemplateOutlet="docBox" />
+          </div>
+        </div>
+
+        <div class="mt-4 flex justify-between gap-8 border-t border-slate-100 pt-3.5">
+          <ng-container *ngTemplateOutlet="customerInfo" />
+          <div class="w-60 shrink-0 self-start">
+            <ng-container *ngTemplateOutlet="contactBox" />
+          </div>
+        </div>
+      }
 
       <!-- ตารางรายการ — รายละเอียดย่อยเป็นแถวขีดนำหน้า ไม่มีราคา แบบใบตัวอย่าง -->
       <div class="mt-5">
@@ -198,7 +256,8 @@
         <div class="mt-6 grid grid-cols-2 gap-10 text-center text-[11px] text-slate-500">
           <div>
             <div class="mx-auto mb-1.5 w-48 border-b border-dashed border-slate-300 pb-6"></div>
-            <p class="font-medium text-slate-700">({{ q.sellerName }})</p>
+            <!-- คนเซ็นคือบุคคลผู้เสนอราคาแบบใบตัวอย่าง · ไม่ได้กรอกก็ใช้ชื่อบริษัทเหมือนเดิม -->
+            <p class="font-medium text-slate-700">({{ q.sellerContactName || q.sellerName }})</p>
             <p>ผู้เสนอราคา</p>
           </div>
           <div>

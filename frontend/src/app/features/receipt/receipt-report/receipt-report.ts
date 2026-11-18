@@ -9,6 +9,8 @@ import { Stepper, Step } from '../../../shared/stepper/stepper';
 import { Spinner } from '../../../shared/spinner/spinner';
 import { ToastService } from '../../../shared/toast/toast.service';
 import { DocumentPage } from '../../../shared/document/document-page';
+import { branchLabel } from '../../../shared/document/branch';
+import { PAYMENT_CHOICES, sharedAccountName, showsCheque, showsTransfer } from '../../../shared/document/payment';
 import { apiErrorMessage } from '../../../core/api-error';
 
 @Component({
@@ -61,6 +63,11 @@ export class ReceiptReport extends DocumentPage {
   protected readonly banks = signal<BankAccount[]>([]);
 
   protected readonly receipt = signal<ReceiptResponse | null>(null);
+  protected readonly branchLabel = branchLabel;
+  protected readonly paymentChoices = PAYMENT_CHOICES;
+  protected readonly sharedAccountName = sharedAccountName;
+  protected readonly showsCheque = showsCheque;
+  protected readonly showsTransfer = showsTransfer;
   protected readonly loading = signal(true);
   protected readonly errorMsg = signal<string | null>(null);
 
@@ -99,6 +106,7 @@ export class ReceiptReport extends DocumentPage {
       .create({
         name: inv.issuerName,
         taxId: inv.issuerTaxId ?? null,
+        branch: inv.issuerBranch ?? null,
         address: inv.issuerAddress ?? null,
         email: inv.issuerEmail ?? null,
         phone: inv.issuerPhone ?? null,
@@ -125,6 +133,7 @@ export class ReceiptReport extends DocumentPage {
       .create({
         name: inv.recipientName,
         taxId: inv.recipientTaxId ?? null,
+        branch: inv.recipientBranch ?? null,
         address: inv.recipientAddress ?? null,
         phone: inv.recipientPhone ?? null,
       })

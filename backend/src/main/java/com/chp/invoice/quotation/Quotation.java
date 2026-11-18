@@ -47,6 +47,20 @@ public class Quotation {
     @Column(name = "seller_email", length = 120)
     private String sellerEmail;
 
+    /** โลโก้ผู้เสนอราคา (data URL) คัดลอกมาตอนสร้าง — แก้โลโก้ที่ผู้เสนอราคาทีหลังไม่กระทบใบนี้ */
+    @Column(name = "seller_logo", columnDefinition = "TEXT")
+    private String sellerLogo;
+
+    // ----- บุคคลผู้เสนอราคา (คนที่ดูแลใบนี้) — แสดงในกรอบเหลือง คนละอย่างกับข้อมูลบริษัทที่หัวกระดาษ -----
+    @Column(name = "seller_contact_name", length = 200)
+    private String sellerContactName;
+
+    @Column(name = "seller_contact_phone", length = 30)
+    private String sellerContactPhone;
+
+    @Column(name = "seller_contact_email", length = 120)
+    private String sellerContactEmail;
+
     // ----- ลูกค้า -----
     @Column(name = "customer_name", nullable = false)
     private String customerName;
@@ -140,6 +154,14 @@ public class Quotation {
     public void setSellerPhone(String sellerPhone) { this.sellerPhone = sellerPhone; }
     public String getSellerEmail() { return sellerEmail; }
     public void setSellerEmail(String sellerEmail) { this.sellerEmail = sellerEmail; }
+    public String getSellerLogo() { return sellerLogo; }
+    public void setSellerLogo(String sellerLogo) { this.sellerLogo = sellerLogo; }
+    public String getSellerContactName() { return sellerContactName; }
+    public void setSellerContactName(String sellerContactName) { this.sellerContactName = sellerContactName; }
+    public String getSellerContactPhone() { return sellerContactPhone; }
+    public void setSellerContactPhone(String sellerContactPhone) { this.sellerContactPhone = sellerContactPhone; }
+    public String getSellerContactEmail() { return sellerContactEmail; }
+    public void setSellerContactEmail(String sellerContactEmail) { this.sellerContactEmail = sellerContactEmail; }
     public String getCustomerName() { return customerName; }
     public void setCustomerName(String customerName) { this.customerName = customerName; }
     public String getCustomerTaxId() { return customerTaxId; }

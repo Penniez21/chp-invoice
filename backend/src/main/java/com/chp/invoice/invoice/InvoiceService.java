@@ -1,7 +1,10 @@
 package com.chp.invoice.invoice;
 
+import com.chp.invoice.document.DocumentTotals;
+import com.chp.invoice.document.PaymentMethod;
 import com.chp.invoice.invoice.dto.InvoiceRequest;
 import com.chp.invoice.invoice.dto.NextNumbersResponse;
+import com.chp.invoice.quotation.VatMode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,10 +18,9 @@ import java.util.Set;
 public class InvoiceService {
 
     private static final int MONEY_SCALE = 2;
-    private static final BigDecimal HUNDRED = new BigDecimal("100");
 
-    /** ภาษีมูลค่าเพิ่ม 7% — ราคาที่กรอกในรายการถือว่า "รวม VAT แล้ว" จึงถอดออกมาเป็นราคาก่อนภาษีมูลค่าเพิ่ม */
-    private static final BigDecimal VAT_RATE = new BigDecimal("7.00");
+    /** อัตรา VAT เมื่อ request ไม่ได้ระบุมา */
+    private static final BigDecimal DEFAULT_VAT_RATE = new BigDecimal("7.00");
 
     private final InvoiceRepository repository;
 
@@ -138,26 +140,29 @@ public class InvoiceService {
         }
         subTotal = subTotal.setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 
-        // ราคาที่กรอกรวม VAT แล้ว: ถอดราคาก่อน VAT = ยอดรวมย่อย × 100 / (100 + อัตรา) แล้ว VAT = ส่วนต่าง
-        // (ใช้ส่วนต่างแทนการคูณอัตราตรง ๆ เพื่อให้ ก่อน VAT + VAT = ยอดรวมย่อย พอดีทุกสตางค์ เหมือนใบเสนอราคา)
-        BigDecimal beforeVat = subTotal.multiply(HUNDRED)
-                .divide(HUNDRED.add(VAT_RATE), MONEY_SCALE, RoundingMode.HALF_UP);
-        BigDecimal vatAmount = subTotal.subtract(beforeVat);
-
-        // ภาษีหัก ณ ที่จ่ายคิดจาก "ราคาก่อนภาษีมูลค่าเพิ่ม" แต่หักออกจากยอดรวมที่รวม VAT แล้ว
+        // VAT 3 แบบ + ภาษีหัก ณ ที่จ่ายจากราคาก่อน VAT — กติกาเดียวกับใบเสร็จ ดู DocumentTotals
+        VatMode vatMode = req.vatMode() == null ? VatMode.INCLUDED : req.vatMode();
+        BigDecimal vatRate = req.vatRate() == null ? DEFAULT_VAT_RATE : req.vatRate();
         BigDecimal whtRate = nz(req.whtRate());
-        BigDecimal whtAmount = beforeVat.multiply(whtRate)
-                .divide(HUNDRED, MONEY_SCALE, RoundingMode.HALF_UP);
-        BigDecimal netTotal = subTotal.subtract(whtAmount).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+        DocumentTotals totals = DocumentTotals.compute(subTotal, vatMode, vatRate, whtRate);
 
         inv.setSubTotal(subTotal);
-        inv.setBeforeVat(beforeVat);
-        inv.setVatRate(VAT_RATE);
-        inv.setVatAmount(vatAmount);
+        inv.setVatMode(vatMode);
+        inv.setVatRate(vatRate);
+        inv.setBeforeVat(totals.beforeVat());
+        inv.setVatAmount(totals.vatAmount());
+        inv.setGrandTotal(totals.grandTotal());
         inv.setWhtRate(whtRate);
-        inv.setWhtAmount(whtAmount);
-        inv.setNetTotal(netTotal);
-        inv.setGrandTotal(subTotal); // ยอดรวมทั้งหมด = ยอดรวมย่อย (ราคารวม VAT อยู่แล้ว)
+        inv.setWhtAmount(totals.whtAmount());
+        inv.setNetTotal(totals.netTotal());
+
+        // รายละเอียดเช็คเก็บเฉพาะเมื่อเลือกเช็ค — เปลี่ยนเป็นเงินสดแล้วไม่ให้ค้างข้อมูลเช็คเก่า
+        boolean cheque = req.paymentMethod() == PaymentMethod.CHEQUE;
+        inv.setPaymentMethod(req.paymentMethod());
+        inv.setChequeBank(cheque ? trimOrNull(req.chequeBank()) : null);
+        inv.setChequeBranch(cheque ? trimOrNull(req.chequeBranch()) : null);
+        inv.setChequeNo(cheque ? trimOrNull(req.chequeNo()) : null);
+        inv.setChequeDate(cheque ? req.chequeDate() : null);
     }
 
     private static BigDecimal nz(BigDecimal v) {

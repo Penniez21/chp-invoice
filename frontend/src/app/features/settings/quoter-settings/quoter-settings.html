@@ -51,6 +51,37 @@
 
         <app-address-picker formControlName="address" />
 
+        <div class="block">
+          <span class="lbl">โลโก้ <span class="font-normal text-ink-soft">(ไม่บังคับ)</span></span>
+          <app-logo-picker formControlName="logo" />
+          <span class="mt-1 block text-xs text-ink-soft">
+            ตอนบันทึก ใบเสนอราคาเดิมของผู้เสนอราคานี้ที่ยังไม่มีโลโก้ จะได้โลโก้นี้ด้วย — ใบที่มีโลโก้อยู่แล้วไม่เปลี่ยน
+          </span>
+        </div>
+
+        <!-- บุคคลผู้เสนอราคา — แสดงในกรอบเหลืองของใบเสนอราคา (คนละอย่างกับข้อมูลบริษัทด้านบน) -->
+        <fieldset class="space-y-4 rounded-xl border border-line p-4">
+          <legend class="px-1.5 text-sm font-semibold text-ink">
+            ผู้เสนอราคา (บุคคล) <span class="font-normal text-ink-soft">— คนที่ดูแลใบเสนอราคา ไม่บังคับ</span>
+          </legend>
+          <label class="block">
+            <span class="lbl">ชื่อ</span>
+            <input formControlName="contactName" class="inp" placeholder="เช่น นายสมชาย ใจดี" />
+          </label>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="block">
+              <span class="lbl">เบอร์โทร (10 หลัก)</span>
+              <input formControlName="contactPhone" class="inp" appDigitsOnly="10" inputmode="numeric" />
+              @if (form.controls.contactPhone.touched && form.controls.contactPhone.invalid) { <span class="err">เบอร์โทรต้องเป็นตัวเลข 10 หลัก</span> }
+            </label>
+            <label class="block">
+              <span class="lbl">อีเมล</span>
+              <input formControlName="contactEmail" class="inp" type="email" inputmode="email" />
+              @if (form.controls.contactEmail.touched && form.controls.contactEmail.invalid) { <span class="err">อีเมลไม่ถูกต้อง</span> }
+            </label>
+          </div>
+        </fieldset>
+
         <div class="flex justify-end gap-3">
           <button type="button" class="btn btn--ghost" (click)="closeForm()">ยกเลิก</button>
           <button type="submit" class="btn btn--primary" [disabled]="saving()">
@@ -82,12 +113,16 @@
         <ul class="divide-y divide-line/60 md:hidden">
           @for (r of pager.items(); track r.id) {
             <li class="flex items-start gap-2 px-5 py-4">
+              @if (r.logo) {
+                <img [src]="r.logo" alt="" class="h-10 w-10 shrink-0 rounded-md bg-white object-contain p-0.5 ring-1 ring-line" />
+              }
               <div class="min-w-0 flex-1 space-y-1">
                 <p class="text-sm font-semibold text-ink">{{ r.name }}</p>
                 @if (r.taxId) { <p class="text-xs text-ink-soft">เลขภาษี {{ r.taxId }}</p> }
                 @if (r.phone) { <p class="text-xs text-ink-soft">โทร {{ r.phone }}</p> }
                 @if (r.email) { <p class="break-all text-xs text-ink-soft">{{ r.email }}</p> }
                 @if (r.address) { <p class="text-xs leading-relaxed text-ink-soft">{{ r.address }}</p> }
+                @if (r.contactName) { <p class="text-xs text-ink-soft">ผู้เสนอราคา: <span class="text-ink">{{ r.contactName }}</span></p> }
               </div>
               <div class="-mr-2 flex shrink-0">
                 <button type="button" class="icon-btn" title="แก้ไข" (click)="openEdit(r)">✎</button>
@@ -112,12 +147,20 @@
               @for (r of pager.items(); track r.id) {
                 <tr class="border-b border-line/60 align-middle">
                   <td class="px-5 py-3">
-                    <p class="font-medium text-ink">{{ r.name }}</p>
-                    <p class="whitespace-nowrap text-xs text-ink-soft">เลขภาษี {{ r.taxId || '-' }}</p>
+                    <div class="flex items-center gap-3">
+                      @if (r.logo) {
+                        <img [src]="r.logo" alt="" class="h-10 w-10 shrink-0 rounded-md bg-white object-contain p-0.5 ring-1 ring-line" />
+                      }
+                      <div class="min-w-0">
+                        <p class="font-medium text-ink">{{ r.name }}</p>
+                        <p class="whitespace-nowrap text-xs text-ink-soft">เลขภาษี {{ r.taxId || '-' }}</p>
+                      </div>
+                    </div>
                   </td>
                   <td class="px-5 py-3 text-ink-soft">
                     <p class="whitespace-nowrap">{{ r.phone || '-' }}</p>
                     @if (r.email) { <p class="break-all text-xs">{{ r.email }}</p> }
+                    @if (r.contactName) { <p class="mt-1 text-xs">ผู้เสนอราคา: <span class="text-ink">{{ r.contactName }}</span></p> }
                   </td>
                   <td class="max-w-[18rem] px-5 py-3 text-ink-soft">{{ r.address || '-' }}</td>
                   <td class="whitespace-nowrap px-5 py-3 text-center">

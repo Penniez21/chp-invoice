@@ -50,6 +50,7 @@ public class IssuerService {
     private void apply(Issuer i, IssuerRequest req) {
         i.setName(req.name().trim());
         i.setTaxId(trimOrNull(req.taxId()));
+        i.setBranch(trimOrNull(req.branch()));
         i.setAddress(trimOrNull(req.address()));
         i.setEmail(trimOrNull(req.email()));
         i.setPhone(trimOrNull(req.phone()));

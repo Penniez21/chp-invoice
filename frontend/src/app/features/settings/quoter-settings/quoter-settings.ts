@@ -10,10 +10,11 @@ import { apiErrorMessage } from '../../../core/api-error';
 import { Quoter, QuoterService } from '../quoter.service';
 import { Pagination } from '../../../shared/pagination/pagination';
 import { createPaginator } from '../../../shared/pagination/paginator';
+import { LogoPicker } from '../../../shared/logo-picker/logo-picker';
 
 @Component({
   selector: 'app-quoter-settings',
-  imports: [ReactiveFormsModule, Spinner, AddressPicker, DigitsOnly, Pagination],
+  imports: [ReactiveFormsModule, Spinner, AddressPicker, DigitsOnly, Pagination, LogoPicker],
   templateUrl: './quoter-settings.html',
 })
 export class QuoterSettings {
@@ -56,6 +57,10 @@ export class QuoterSettings {
     address: [''],
     phone: ['', [thaiPhone]],
     email: ['', [Validators.email]],
+    logo: [null as string | null],
+    contactName: [''],
+    contactPhone: ['', [thaiPhone]],
+    contactEmail: ['', [Validators.email]],
   });
 
   constructor() {
@@ -78,7 +83,10 @@ export class QuoterSettings {
 
   protected openCreate(): void {
     this.editingId.set(null);
-    this.form.reset({ name: '', taxId: '', address: '', phone: '', email: '' });
+    this.form.reset({
+      name: '', taxId: '', address: '', phone: '', email: '', logo: null,
+      contactName: '', contactPhone: '', contactEmail: '',
+    });
     this.formOpen.set(true);
   }
 
@@ -90,6 +98,10 @@ export class QuoterSettings {
       address: r.address ?? '',
       phone: r.phone ?? '',
       email: r.email ?? '',
+      logo: r.logo,
+      contactName: r.contactName ?? '',
+      contactPhone: r.contactPhone ?? '',
+      contactEmail: r.contactEmail ?? '',
     });
     this.formOpen.set(true);
   }
@@ -102,7 +114,7 @@ export class QuoterSettings {
   protected save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.toast.error('ข้อมูลยังไม่ถูกต้อง', 'ตรวจชื่อบริษัท / บุคคล เลขผู้เสียภาษี อีเมล และเบอร์โทรอีกครั้ง');
+      this.toast.error('ข้อมูลยังไม่ถูกต้อง', 'ตรวจชื่อบริษัท / บุคคล เลขผู้เสียภาษี อีเมล เบอร์โทร และความยาวที่อยู่อีกครั้ง');
       return;
     }
     const raw = this.form.getRawValue();
@@ -112,15 +124,22 @@ export class QuoterSettings {
       address: raw.address || null,
       phone: raw.phone || null,
       email: raw.email || null,
+      logo: raw.logo,
+      contactName: raw.contactName.trim() || null,
+      contactPhone: raw.contactPhone || null,
+      contactEmail: raw.contactEmail || null,
     };
 
     this.saving.set(true);
     const id = this.editingId();
     const req = id ? this.service.update(id, payload) : this.service.create(payload);
     req.subscribe({
-      next: () => {
+      next: (saved) => {
         this.saving.set(false);
         this.toast.success(id ? 'แก้ไขผู้เสนอราคาแล้ว' : 'เพิ่มผู้เสนอราคาแล้ว', raw.name);
+        if (saved.logoAppliedToQuotations) {
+          this.toast.info('ใส่โลโก้ให้ใบเสนอราคาเดิมแล้ว', `${saved.logoAppliedToQuotations} ใบที่ยังไม่มีโลโก้`);
+        }
         this.closeForm();
         this.load();
       },

@@ -1,6 +1,8 @@
 package com.chp.invoice.invoice.dto;
 
+import com.chp.invoice.document.PaymentMethod;
 import com.chp.invoice.invoice.Invoice;
+import com.chp.invoice.quotation.VatMode;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -25,6 +27,7 @@ public record InvoiceResponse(
         String recipientAddress,
         String recipientPhone,
         BigDecimal subTotal,
+        VatMode vatMode,
         BigDecimal beforeVat,
         BigDecimal vatRate,
         BigDecimal vatAmount,
@@ -32,6 +35,11 @@ public record InvoiceResponse(
         BigDecimal whtAmount,
         BigDecimal netTotal,
         BigDecimal grandTotal,
+        PaymentMethod paymentMethod,
+        String chequeBank,
+        String chequeBranch,
+        String chequeNo,
+        LocalDate chequeDate,
         LocalDateTime createdAt,
         List<Item> items
 ) {
@@ -51,7 +59,9 @@ public record InvoiceResponse(
                 inv.getId(), inv.getInvoiceNo(), inv.getPoNo(), inv.getProject(), inv.getIssueDate(), inv.getDueDate(),
                 inv.getIssuerName(), inv.getIssuerTaxId(), inv.getIssuerAddress(), inv.getIssuerEmail(), inv.getIssuerPhone(),
                 inv.getRecipientName(), inv.getRecipientTaxId(), inv.getRecipientAddress(), inv.getRecipientPhone(),
-                inv.getSubTotal(), inv.getBeforeVat(), inv.getVatRate(), inv.getVatAmount(), inv.getWhtRate(), inv.getWhtAmount(), inv.getNetTotal(), inv.getGrandTotal(),
+                inv.getSubTotal(), inv.getVatMode(), inv.getBeforeVat(), inv.getVatRate(), inv.getVatAmount(),
+                inv.getWhtRate(), inv.getWhtAmount(), inv.getNetTotal(), inv.getGrandTotal(),
+                inv.getPaymentMethod(), inv.getChequeBank(), inv.getChequeBranch(), inv.getChequeNo(), inv.getChequeDate(),
                 inv.getCreatedAt(), items
         );
     }

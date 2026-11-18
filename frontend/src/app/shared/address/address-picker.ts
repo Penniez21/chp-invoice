@@ -1,11 +1,54 @@
 import { Component, computed, forwardRef, inject, signal } from '@angular/core';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import {
+  AbstractControl, ControlValueAccessor, NG_VALIDATORS, NG_VALUE_ACCESSOR, ValidationErrors, Validator,
+} from '@angular/forms';
 import { AddressDataService, Province } from './address-data.service';
 import { Combobox, ComboOption } from '../combobox/combobox';
 
 /**
+ * ที่อยู่บนเอกสาร A4 (ใบแจ้งหนี้ / ใบเสร็จ / ใบเสนอราคา) ยาวได้ไม่เกิน 2 บรรทัด ไม่งั้นข้อมูลยืดจนดันตารางลง
+ * ช่องที่อยู่ที่แคบที่สุดบนเอกสาร = 794 (A4) − 72 (p-9 ซ้ายขวา) − 240 (กล่องขวา w-60) − 32 (gap-8)
+ * − 70 (คอลัมน์ป้าย) − 8 (gap-x-2) = 372px ที่ตัวอักษร 12px Sarabun
+ */
+export const MAX_ADDRESS_LINES = 2;
+const DOC_ADDRESS_WIDTH_PX = 372;
+const DOC_FONT = '12px Sarabun';
+
+let measureCtx: CanvasRenderingContext2D | null = null;
+
+/**
+ * ประมาณว่าที่อยู่นี้จะกินกี่บรรทัดบนเอกสาร — วัดความกว้างจริงด้วยฟอนต์ของเอกสาร
+ * (นับตัวอักษรไม่ได้ เพราะสระบน/ล่างและวรรณยุกต์นับเป็นตัวอักษรแต่ไม่กินที่)
+ * เติมคำที่คั่นด้วยช่องว่างทีละคำแบบที่เบราว์เซอร์ตัดบรรทัด — เทียบกับของจริงแล้วตรงกัน
+ */
+export function addressLinesOnDocument(text: string): number {
+  const words = text.split(/\s+/).filter(Boolean);
+  if (!words.length) return 0;
+  measureCtx ??= document.createElement('canvas').getContext('2d');
+  if (!measureCtx) return 1;
+  measureCtx.font = DOC_FONT;
+  const ctx = measureCtx;
+  const space = ctx.measureText(' ').width;
+  let lines = 1;
+  let used = 0;
+  for (const w of words) {
+    const width = ctx.measureText(w).width;
+    if (used > 0 && used + space + width <= DOC_ADDRESS_WIDTH_PX) {
+      used += space + width;
+      continue;
+    }
+    if (used > 0) lines++;
+    // คำเดียวยาวกว่าบรรทัด → ล้นไปหลายบรรทัด
+    lines += Math.ceil(width / DOC_ADDRESS_WIDTH_PX) - 1;
+    used = width % DOC_ADDRESS_WIDTH_PX || width;
+  }
+  return lines;
+}
+
+/**
  * ช่องกรอกที่อยู่แบบเลือก จังหวัด → อำเภอ → ตำบล → เติมรหัสไปรษณีย์อัตโนมัติ
  * เป็น ControlValueAccessor → ใช้กับ formControlName ได้ และเก็บค่าเป็น string ที่ประกอบแล้ว
+ * เป็น Validator ด้วย: ที่อยู่ยาวเกิน MAX_ADDRESS_LINES บรรทัดบนเอกสาร → ฟอร์มไม่ valid บันทึกไม่ได้
  */
 @Component({
   selector: 'app-address-picker',
@@ -16,9 +59,11 @@ import { Combobox, ComboOption } from '../combobox/combobox';
   host: { class: 'block' },
   providers: [
     { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => AddressPicker), multi: true },
+    { provide: NG_VALIDATORS, useExisting: forwardRef(() => AddressPicker), multi: true },
   ],
 })
-export class AddressPicker implements ControlValueAccessor {
+export class AddressPicker implements ControlValueAccessor, Validator {
+  protected readonly maxLines = MAX_ADDRESS_LINES;
   private dataSvc = inject(AddressDataService);
 
   protected readonly provinces = signal<Province[]>([]);
@@ -46,6 +91,18 @@ export class AddressPicker implements ControlValueAccessor {
   protected readonly tambonOptions = computed<ComboOption[]>(() =>
     this.tambons().map((t) => ({ value: t.n, label: t.n, hint: t.z }))
   );
+
+  /** ที่อยู่ที่ประกอบแล้ว — ค่าที่ส่งออกไปให้ฟอร์ม และใช้วัดความยาวบนเอกสาร */
+  protected readonly composed = computed(() => {
+    const parts: string[] = [];
+    if (this.detail().trim()) parts.push(this.detail().trim());
+    if (this.tambon()) parts.push('ต.' + this.tambon());
+    if (this.amphure()) parts.push('อ.' + this.amphure());
+    if (this.province()) parts.push('จ.' + this.province());
+    if (this.zip()) parts.push(this.zip());
+    return parts.join(' ');
+  });
+  protected readonly docLines = computed(() => addressLinesOnDocument(this.composed()));
 
   private onChange: (v: string) => void = () => {};
   private onTouched: () => void = () => {};
@@ -76,6 +133,12 @@ export class AddressPicker implements ControlValueAccessor {
     this.isDisabled.set(disabled);
   }
 
+  // ---- Validator ---- วัดจากค่าของฟอร์มเอง จึงครอบคลุมค่าที่ patch เข้ามาจากข้อมูลเดิมด้วย
+  validate(control: AbstractControl): ValidationErrors | null {
+    const lines = addressLinesOnDocument(String(control.value ?? ''));
+    return lines > MAX_ADDRESS_LINES ? { addressTooLong: { lines, max: MAX_ADDRESS_LINES } } : null;
+  }
+
   // ---- handlers ----
   protected onDetail(v: string): void {
     this.detail.set(v);
@@ -101,13 +164,7 @@ export class AddressPicker implements ControlValueAccessor {
   }
 
   private emit(): void {
-    const parts: string[] = [];
-    if (this.detail().trim()) parts.push(this.detail().trim());
-    if (this.tambon()) parts.push('ต.' + this.tambon());
-    if (this.amphure()) parts.push('อ.' + this.amphure());
-    if (this.province()) parts.push('จ.' + this.province());
-    if (this.zip()) parts.push(this.zip());
-    this.onChange(parts.join(' '));
+    this.onChange(this.composed());
     this.onTouched();
   }
 

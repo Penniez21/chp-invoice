@@ -12,6 +12,9 @@ public record RecipientRequest(
         @Pattern(regexp = "^$|^\\d{13}$", message = "เลขประจำตัวผู้เสียภาษีต้องเป็นตัวเลข 13 หลัก")
         String taxId,
 
+        @Pattern(regexp = "^$|^\\d{5}$", message = "รหัสสาขาต้องเป็นตัวเลข 5 หลัก (สำนักงานใหญ่ = 00000)")
+        String branch,
+
         String address,
 
         @Pattern(regexp = "^$|^\\d{10}$", message = "เบอร์โทรต้องเป็นตัวเลข 10 หลัก")

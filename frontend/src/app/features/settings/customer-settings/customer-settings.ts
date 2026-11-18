@@ -108,7 +108,7 @@ export class CustomerSettings {
   protected save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.toast.error('ข้อมูลยังไม่ถูกต้อง', 'ตรวจชื่อลูกค้า เลขผู้เสียภาษี อีเมล และเบอร์โทรอีกครั้ง');
+      this.toast.error('ข้อมูลยังไม่ถูกต้อง', 'ตรวจชื่อลูกค้า เลขผู้เสียภาษี อีเมล เบอร์โทร และความยาวที่อยู่อีกครั้ง');
       return;
     }
     const raw = this.form.getRawValue();

@@ -2,6 +2,8 @@ package com.chp.invoice.quotation;
 
 import com.chp.invoice.quotation.dto.NextQuotationNoResponse;
 import com.chp.invoice.quotation.dto.QuotationRequest;
+import com.chp.invoice.quoter.Quoter;
+import com.chp.invoice.quoter.QuoterRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,9 +26,11 @@ public class QuotationService {
     private static final Pattern RUNNING = Pattern.compile("^PSPO-(\\d{1,18})$", Pattern.CASE_INSENSITIVE);
 
     private final QuotationRepository repository;
+    private final QuoterRepository quoters;
 
-    public QuotationService(QuotationRepository repository) {
+    public QuotationService(QuotationRepository repository, QuoterRepository quoters) {
         this.repository = repository;
+        this.quoters = quoters;
     }
 
     @Transactional(readOnly = true)
@@ -110,6 +114,10 @@ public class QuotationService {
         q.setSellerAddress(trimOrNull(req.sellerAddress()));
         q.setSellerPhone(trimOrNull(req.sellerPhone()));
         q.setSellerEmail(trimOrNull(req.sellerEmail()));
+        q.setSellerLogo(logoOrSavedQuoters(trimOrNull(req.sellerLogo()), q.getSellerName(), q.getSellerTaxId()));
+        q.setSellerContactName(trimOrNull(req.sellerContactName()));
+        q.setSellerContactPhone(trimOrNull(req.sellerContactPhone()));
+        q.setSellerContactEmail(trimOrNull(req.sellerContactEmail()));
 
         q.setCustomerName(req.customerName().trim());
         q.setCustomerTaxId(trimOrNull(req.customerTaxId()));
@@ -177,6 +185,20 @@ public class QuotationService {
 
     private static BigDecimal nz(BigDecimal v) {
         return v == null ? BigDecimal.ZERO : v;
+    }
+
+    /**
+     * โลโก้จัดการที่เมนูผู้เสนอราคาเท่านั้น (ฟอร์มใบเสนอราคาไม่มีช่องโลโก้ — ผู้ใช้ขอ)
+     * ใบที่ไม่ได้ส่งโลโก้มา เช่น พิมพ์ชื่อผู้เสนอราคาเองแทนการเลือกจาก dropdown
+     * ใช้โลโก้ของผู้เสนอราคาที่บันทึกไว้ซึ่งชื่อ + เลขภาษีตรงกัน
+     */
+    private String logoOrSavedQuoters(String logo, String sellerName, String sellerTaxId) {
+        if (logo != null) return logo;
+        return (sellerTaxId == null
+                ? quoters.findFirstByNameAndTaxIdIsNullAndLogoIsNotNull(sellerName)
+                : quoters.findFirstByNameAndTaxIdAndLogoIsNotNull(sellerName, sellerTaxId))
+                .map(Quoter::getLogo)
+                .orElse(null);
     }
 
     private static String trimOrNull(String v) {

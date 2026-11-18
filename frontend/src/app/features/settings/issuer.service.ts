@@ -6,6 +6,8 @@ export interface Issuer {
   id: number;
   name: string;
   taxId: string | null;
+  /** รหัสสาขา 5 หลัก: 00000 = สำนักงานใหญ่ · null = ไม่ระบุ (ใช้บนใบกำกับภาษี) */
+  branch: string | null;
   address: string | null;
   email: string | null;
   phone: string | null;

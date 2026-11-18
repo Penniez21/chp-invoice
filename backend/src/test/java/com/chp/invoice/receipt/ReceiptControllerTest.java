@@ -117,6 +117,44 @@ class ReceiptControllerTest {
                 .andExpect(jsonPath("$.project").value("งานวางท่อ"));
     }
 
+    private Map<String, Object> taxInvoiceBody(String vatMode) {
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("receiptNo", "R-TAX-" + vatMode); // ไม่ใช่ PS- จึงไม่กระทบเลขรัน
+        body.put("issueDate", "2026-11-18");
+        body.put("issuerName", "บริษัท ผู้ออก จำกัด");
+        body.put("issuerBranch", "00000");
+        body.put("recipientName", "บริษัท ลูกค้า จำกัด");
+        body.put("recipientBranch", "00002");
+        body.put("whtRate", 3.00);
+        body.put("vatMode", vatMode);
+        body.put("vatRate", 7);
+        body.put("taxInvoice", true);
+        body.put("items", List.of(Map.of("description", "x", "quantity", 1, "unitPrice", 1000)));
+        return body;
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void taxInvoice_needsVat_andKeepsBranches() throws Exception {
+        mvc.perform(post("/api/receipts").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(taxInvoiceBody("EXCLUDED"))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.taxInvoice").value(true))
+                .andExpect(jsonPath("$.issuerBranch").value("00000"))
+                .andExpect(jsonPath("$.recipientBranch").value("00002"))
+                .andExpect(jsonPath("$.grandTotal").value(1070.00));
+
+        // ไม่มี VAT ออกเป็นใบกำกับภาษีไม่ได้ แม้จะส่ง taxInvoice = true มา
+        mvc.perform(post("/api/receipts").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(taxInvoiceBody("NONE"))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.taxInvoice").value(false));
+
+        Map<String, Object> badBranch = taxInvoiceBody("INCLUDED");
+        badBranch.put("issuerBranch", "สาขา1");
+        mvc.perform(post("/api/receipts").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(badBranch)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("รหัสสาขาผู้ออกต้องเป็นตัวเลข 5 หลัก (สำนักงานใหญ่ = 00000)"));
+    }
+
     @Test
     void list_withoutAuth_returns401() throws Exception {
         mvc.perform(get("/api/receipts"))

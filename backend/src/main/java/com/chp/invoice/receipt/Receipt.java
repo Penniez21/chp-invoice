@@ -1,5 +1,7 @@
 package com.chp.invoice.receipt;
 
+import com.chp.invoice.document.PaymentMethod;
+import com.chp.invoice.quotation.VatMode;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -69,7 +71,12 @@ public class Receipt {
     @Column(name = "sub_total", nullable = false, precision = 14, scale = 2)
     private BigDecimal subTotal = BigDecimal.ZERO;
 
-    /** ราคาก่อนภาษีมูลค่าเพิ่ม = ยอดรวมย่อย − ภาษีมูลค่าเพิ่ม (ราคาที่กรอกถือว่ารวม VAT แล้ว) */
+    /** วิธีคิด VAT 3 แบบเหมือนใบเสนอราคา — ดู document.DocumentTotals */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "vat_mode", nullable = false, length = 10)
+    private VatMode vatMode = VatMode.INCLUDED;
+
+    /** ราคาก่อนภาษีมูลค่าเพิ่ม (ฐานคิดภาษีหัก ณ ที่จ่าย) */
     @Column(name = "before_vat", nullable = false, precision = 14, scale = 2)
     private BigDecimal beforeVat = BigDecimal.ZERO;
 
@@ -90,6 +97,34 @@ public class Receipt {
 
     @Column(name = "grand_total", nullable = false, precision = 14, scale = 2)
     private BigDecimal grandTotal = BigDecimal.ZERO;
+
+    // ----- ช่องทางการชำระ (ไม่บังคับ) — กรณีเช็คเก็บรายละเอียดเช็คด้วย -----
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method", length = 10)
+    private PaymentMethod paymentMethod;
+
+    @Column(name = "cheque_bank", length = 100)
+    private String chequeBank;
+
+    @Column(name = "cheque_branch", length = 100)
+    private String chequeBranch;
+
+    @Column(name = "cheque_no", length = 50)
+    private String chequeNo;
+
+    @Column(name = "cheque_date")
+    private LocalDate chequeDate;
+
+    // ----- ใบกำกับภาษี — หัวเอกสารเป็น "ใบเสร็จรับเงิน/ใบกำกับภาษี" (ต้องมี VAT) -----
+    @Column(name = "tax_invoice", nullable = false)
+    private boolean taxInvoice = false;
+
+    /** รหัสสาขา 5 หลักแบบกรมสรรพากร: 00000 = สำนักงานใหญ่ · null = ไม่ระบุ */
+    @Column(name = "issuer_branch", length = 5)
+    private String issuerBranch;
+
+    @Column(name = "recipient_branch", length = 5)
+    private String recipientBranch;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -165,6 +200,24 @@ public class Receipt {
     public void setNetTotal(BigDecimal netTotal) { this.netTotal = netTotal; }
     public BigDecimal getGrandTotal() { return grandTotal; }
     public void setGrandTotal(BigDecimal grandTotal) { this.grandTotal = grandTotal; }
+    public VatMode getVatMode() { return vatMode; }
+    public void setVatMode(VatMode vatMode) { this.vatMode = vatMode; }
+    public PaymentMethod getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
+    public String getChequeBank() { return chequeBank; }
+    public void setChequeBank(String chequeBank) { this.chequeBank = chequeBank; }
+    public String getChequeBranch() { return chequeBranch; }
+    public void setChequeBranch(String chequeBranch) { this.chequeBranch = chequeBranch; }
+    public String getChequeNo() { return chequeNo; }
+    public void setChequeNo(String chequeNo) { this.chequeNo = chequeNo; }
+    public LocalDate getChequeDate() { return chequeDate; }
+    public void setChequeDate(LocalDate chequeDate) { this.chequeDate = chequeDate; }
+    public boolean isTaxInvoice() { return taxInvoice; }
+    public void setTaxInvoice(boolean taxInvoice) { this.taxInvoice = taxInvoice; }
+    public String getIssuerBranch() { return issuerBranch; }
+    public void setIssuerBranch(String issuerBranch) { this.issuerBranch = issuerBranch; }
+    public String getRecipientBranch() { return recipientBranch; }
+    public void setRecipientBranch(String recipientBranch) { this.recipientBranch = recipientBranch; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public List<ReceiptItem> getItems() { return items; }

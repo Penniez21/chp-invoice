@@ -106,6 +106,82 @@ class InvoiceControllerTest {
                 .andExpect(jsonPath("$.project").doesNotExist());
     }
 
+    /** ใบแจ้งหนี้ 1 รายการ 1,000 บาท หัก ณ ที่จ่าย 3% — ใช้ทดสอบ VAT แต่ละแบบ */
+    private Map<String, Object> thousandBaht(String vatMode) {
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("invoiceNo", "VAT-" + vatMode);
+        body.put("issueDate", "2026-11-18");
+        body.put("issuerName", "A");
+        body.put("recipientName", "B");
+        body.put("whtRate", 3.00);
+        body.put("vatMode", vatMode);
+        body.put("vatRate", 7);
+        body.put("items", java.util.List.of(Map.of("description", "งาน", "quantity", 1, "unitPrice", 1000)));
+        return body;
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void vatModes_likeTheQuotation_withWhtFromThePriceBeforeVat() throws Exception {
+        // รวม VAT แล้ว: ก่อน VAT 934.58 · VAT 65.42 · ทั้งหมด 1,000 · หัก 3% ของ 934.58 = 28.04 · ชำระ 971.96
+        mvc.perform(post("/api/invoices").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(thousandBaht("INCLUDED"))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.beforeVat").value(934.58))
+                .andExpect(jsonPath("$.vatAmount").value(65.42))
+                .andExpect(jsonPath("$.grandTotal").value(1000.00))
+                .andExpect(jsonPath("$.whtAmount").value(28.04))
+                .andExpect(jsonPath("$.netTotal").value(971.96));
+
+        // บวก VAT เพิ่ม: ก่อน VAT 1,000 · VAT 70 · ทั้งหมด 1,070 · หัก 3% ของ 1,000 = 30 · ชำระ 1,040
+        mvc.perform(post("/api/invoices").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(thousandBaht("EXCLUDED"))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.vatMode").value("EXCLUDED"))
+                .andExpect(jsonPath("$.beforeVat").value(1000.00))
+                .andExpect(jsonPath("$.vatAmount").value(70.00))
+                .andExpect(jsonPath("$.grandTotal").value(1070.00))
+                .andExpect(jsonPath("$.whtAmount").value(30.00))
+                .andExpect(jsonPath("$.netTotal").value(1040.00));
+
+        // ไม่มี VAT: ทั้งหมด 1,000 · หัก 30 · ชำระ 970
+        mvc.perform(post("/api/invoices").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(thousandBaht("NONE"))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.vatAmount").value(0.00))
+                .andExpect(jsonPath("$.grandTotal").value(1000.00))
+                .andExpect(jsonPath("$.whtAmount").value(30.00))
+                .andExpect(jsonPath("$.netTotal").value(970.00));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void chequeDetails_areKeptOnlyWhenPaidByCheque() throws Exception {
+        Map<String, Object> body = thousandBaht("INCLUDED");
+        body.put("paymentMethod", "CHEQUE");
+        body.put("chequeBank", " กสิกรไทย ");
+        body.put("chequeBranch", "สีลม");
+        body.put("chequeNo", "1234567");
+        body.put("chequeDate", "2026-11-20");
+        mvc.perform(post("/api/invoices").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(body)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.paymentMethod").value("CHEQUE"))
+                .andExpect(jsonPath("$.chequeBank").value("กสิกรไทย"))
+                .andExpect(jsonPath("$.chequeDate").value("2026-11-20"));
+
+        body.put("paymentMethod", "CASH");
+        mvc.perform(post("/api/invoices").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(body)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.paymentMethod").value("CASH"))
+                .andExpect(jsonPath("$.chequeBank").doesNotExist())
+                .andExpect(jsonPath("$.chequeNo").doesNotExist());
+
+        // โอนเงิน: เอกสารแสดงบัญชีธนาคารจากเมนูบัญชีธนาคาร — รายละเอียดเช็คที่ค้างมาในคำขอต้องไม่ถูกเก็บ
+        body.put("paymentMethod", "TRANSFER");
+        mvc.perform(post("/api/invoices").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(body)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.paymentMethod").value("TRANSFER"))
+                .andExpect(jsonPath("$.chequeBank").doesNotExist())
+                .andExpect(jsonPath("$.chequeDate").doesNotExist());
+    }
+
     @Test
     void create_withoutAuth_returns401() throws Exception {
         mvc.perform(post("/api/invoices")

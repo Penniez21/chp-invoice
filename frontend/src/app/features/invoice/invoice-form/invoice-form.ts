@@ -15,12 +15,14 @@ import { apiErrorMessage } from '../../../core/api-error';
 import { Recipient, RecipientService } from '../../settings/recipient.service';
 import { Issuer, IssuerService } from '../../settings/issuer.service';
 import { Combobox, ComboOption } from '../../../shared/combobox/combobox';
-import { baht, excludePercent, lineSatang, percentOf } from '../../../shared/money';
-import { VAT_RATE } from '../../../shared/document/vat';
+import { baht, lineSatang } from '../../../shared/money';
+import { VAT_MODES, VAT_RATE, VatMode, documentTotals } from '../../../shared/document/vat';
+import { PAYMENT_METHODS, PaymentMethod, paymentHint } from '../../../shared/document/payment';
+import { TransferAccounts } from '../../../shared/document/transfer-accounts';
 
 @Component({
   selector: 'app-invoice-form',
-  imports: [ReactiveFormsModule, RouterLink, Stepper, Spinner, AddressPicker, DatePicker, DigitsOnly, Combobox],
+  imports: [ReactiveFormsModule, RouterLink, Stepper, Spinner, AddressPicker, DatePicker, DigitsOnly, Combobox, TransferAccounts],
   templateUrl: './invoice-form.html',
 })
 export class InvoiceForm implements OnInit {
@@ -87,29 +89,41 @@ export class InvoiceForm implements OnInit {
     recipientAddress: [''],
     recipientPhone: ['', [thaiPhone]],
     whtRate: [3, [Validators.required, Validators.min(0), Validators.max(100)]],
+    vatMode: ['INCLUDED' as VatMode],
+    vatRate: [VAT_RATE, [Validators.required, Validators.min(0), Validators.max(100)]],
+    paymentMethod: ['' as PaymentMethod | ''],
+    chequeBank: [''],
+    chequeBranch: [''],
+    chequeNo: [''],
+    chequeDate: [''],
     items: this.fb.array([this.newItem()]),
   });
+
+  protected readonly vatModes = VAT_MODES;
+  protected readonly paymentMethods = PAYMENT_METHODS;
+  protected readonly paymentHint = paymentHint;
 
   private readonly value = toSignal(this.form.valueChanges, {
     initialValue: this.form.getRawValue(),
   });
 
-  // คิดยอดเป็นจำนวนเต็มสตางค์ตามกฎเดียวกับ backend (InvoiceService.apply) เพื่อให้ตรงกับที่บันทึก/พิมพ์เสมอ:
-  // แต่ละบรรทัดปัด 2 ตำแหน่ง HALF_UP → รวม → ถอดราคาก่อน VAT ออกจากยอดรวม
-  // → ภาษีหัก = ราคาก่อน VAT × อัตรา / 100 ปัด HALF_UP → สุทธิ = ยอดรวม(รวม VAT) − ภาษีหัก
+  // คิดยอดเป็นจำนวนเต็มสตางค์ตามกฎเดียวกับ backend (DocumentTotals) เพื่อให้ตรงกับที่บันทึก/พิมพ์เสมอ:
+  // แต่ละบรรทัดปัด 2 ตำแหน่ง HALF_UP → รวม → VAT ตามแบบที่เลือก → ภาษีหักจากราคาก่อน VAT → ชำระ = ทั้งหมด − ภาษีหัก
   private readonly subTotalSatang = computed(() =>
     (this.value().items ?? []).reduce((s, it) => s + lineSatang(it?.quantity, it?.unitPrice), 0n)
   );
-  // VAT = ส่วนต่าง (ไม่ใช่คูณอัตราตรง ๆ) ให้ ราคาก่อน VAT + VAT = ยอดรวมย่อย พอดีทุกสตางค์
-  private readonly beforeVatSatang = computed(() => excludePercent(this.subTotalSatang(), VAT_RATE));
-  private readonly whtSatang = computed(() => percentOf(this.beforeVatSatang(), this.value().whtRate));
+  private readonly totals = computed(() =>
+    documentTotals(this.subTotalSatang(), this.value().vatMode, this.value().vatRate, this.value().whtRate)
+  );
 
-  protected readonly vatRate = VAT_RATE;
+  protected readonly vatMode = computed(() => this.value().vatMode ?? 'INCLUDED');
+  protected readonly paymentMethod = computed(() => this.value().paymentMethod ?? '');
   protected readonly subTotal = computed(() => baht(this.subTotalSatang()));
-  protected readonly beforeVat = computed(() => baht(this.beforeVatSatang()));
-  protected readonly vatAmount = computed(() => baht(this.subTotalSatang() - this.beforeVatSatang()));
-  protected readonly whtAmount = computed(() => baht(this.whtSatang()));
-  protected readonly netTotal = computed(() => baht(this.subTotalSatang() - this.whtSatang()));
+  protected readonly beforeVat = computed(() => baht(this.totals().beforeVat));
+  protected readonly vatAmount = computed(() => baht(this.totals().vat));
+  protected readonly grandTotal = computed(() => baht(this.totals().grand));
+  protected readonly whtAmount = computed(() => baht(this.totals().wht));
+  protected readonly netTotal = computed(() => baht(this.totals().net));
 
   ngOnInit(): void {
     const idVal = this.id();
@@ -155,6 +169,14 @@ export class InvoiceForm implements OnInit {
   }
 
   /** เลือกผู้ออกจาก dropdown → เติมข้อมูลลงฟอร์ม (ยังแก้ทับได้ตามปกติ) */
+  protected setVatMode(mode: VatMode): void {
+    this.form.controls.vatMode.setValue(mode);
+  }
+
+  protected setPaymentMethod(method: PaymentMethod | ''): void {
+    this.form.controls.paymentMethod.setValue(method);
+  }
+
   protected applySavedIssuer(idValue: string): void {
     this.pickedIssuerId.set(idValue);
     if (!idValue) return;
@@ -219,8 +241,15 @@ export class InvoiceForm implements OnInit {
     }
     this.saving.set(true);
     const raw = this.form.getRawValue();
+    const cheque = raw.paymentMethod === 'CHEQUE';
     const payload: InvoiceRequest = {
       ...raw,
+      vatRate: this.n(raw.vatRate),
+      paymentMethod: raw.paymentMethod || null,
+      chequeBank: cheque ? raw.chequeBank.trim() || null : null,
+      chequeBranch: cheque ? raw.chequeBranch.trim() || null : null,
+      chequeNo: cheque ? raw.chequeNo.trim() || null : null,
+      chequeDate: cheque ? raw.chequeDate || null : null,
       poNo: raw.poNo || null,
       project: raw.project.trim() || null,
       dueDate: raw.dueDate || null,
@@ -285,6 +314,13 @@ export class InvoiceForm implements OnInit {
       recipientAddress: inv.recipientAddress ?? '',
       recipientPhone: inv.recipientPhone ?? '',
       whtRate: inv.whtRate,
+      vatMode: inv.vatMode ?? 'INCLUDED',
+      vatRate: inv.vatRate ?? VAT_RATE,
+      paymentMethod: inv.paymentMethod ?? '',
+      chequeBank: inv.chequeBank ?? '',
+      chequeBranch: inv.chequeBranch ?? '',
+      chequeNo: inv.chequeNo ?? '',
+      chequeDate: inv.chequeDate ?? '',
     });
     this.setItems(inv.items.map((it) => this.newItem(it.description, it.quantity, it.unitPrice)));
   }

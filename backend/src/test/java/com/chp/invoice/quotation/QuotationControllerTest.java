@@ -129,6 +129,136 @@ class QuotationControllerTest {
                 .andExpect(jsonPath("$.message").value("กรุณากรอกชื่อลูกค้า"));
     }
 
+    /** PNG ขนาด 1×1 พิกเซล — พอสำหรับทดสอบว่าโลโก้ถูกเก็บและส่งกลับ */
+    private static final String TINY_PNG = "data:image/png;base64,"
+            + "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void sellerLogo_isReturnedOnTheDocument_butNotInTheList() throws Exception {
+        Map<String, Object> body = sampleQuotation("INCLUDED", List.of(item("งาน", 1, 100)));
+        body.put("quotationNo", "LOGO-1");
+        body.put("sellerLogo", TINY_PNG);
+        String created = mvc.perform(post("/api/quotations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(om.writeValueAsString(body)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.sellerLogo").value(TINY_PNG))
+                .andReturn().getResponse().getContentAsString();
+        long id = om.readTree(created).get("id").asLong();
+
+        mvc.perform(get("/api/quotations/{id}", id))
+                .andExpect(jsonPath("$.sellerLogo").value(TINY_PNG));
+        // หน้ารายการไม่ส่งโลโก้ — data URL หลายสิบ KB ต่อใบ และตารางไม่ได้ใช้
+        mvc.perform(get("/api/quotations"))
+                .andExpect(jsonPath("$[?(@.quotationNo == 'LOGO-1')].sellerLogo").value(org.hamcrest.Matchers.contains((Object) null)));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void sellerContactPerson_isSavedOnQuoterAndQuotation() throws Exception {
+        Map<String, Object> quoter = new HashMap<>();
+        quoter.put("name", "บริษัท ผู้เสนอ ทดสอบ จำกัด");
+        quoter.put("contactName", "  นายทดสอบ ผู้ดูแล  ");
+        quoter.put("contactPhone", "0812345678");
+        quoter.put("contactEmail", "sales@example.com");
+        mvc.perform(post("/api/quoters").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(quoter)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.contactName").value("นายทดสอบ ผู้ดูแล"))
+                .andExpect(jsonPath("$.contactPhone").value("0812345678"));
+
+        quoter.put("contactPhone", "081-234");
+        mvc.perform(post("/api/quoters").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(quoter)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("เบอร์โทรผู้เสนอราคา (บุคคล) ต้องเป็นตัวเลข 10 หลัก"));
+
+        Map<String, Object> body = sampleQuotation("INCLUDED", List.of(item("งาน", 1, 100)));
+        body.put("sellerContactName", "นายทดสอบ ผู้ดูแล");
+        body.put("sellerContactEmail", "sales@example.com");
+        mvc.perform(post("/api/quotations").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(body)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.sellerContactName").value("นายทดสอบ ผู้ดูแล"))
+                .andExpect(jsonPath("$.sellerContactEmail").value("sales@example.com"))
+                .andExpect(jsonPath("$.sellerContactPhone").doesNotExist());
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void savingQuoterLogo_fillsOnlyItsOldQuotationsThatHaveNoLogo() throws Exception {
+        String name = "บริษัท เติมโลโก้ย้อนหลัง จำกัด";
+        String taxId = "0105559000018";
+        String ownLogo = TINY_PNG;
+        String quoterLogo = "data:image/png;base64,QUJDRA==";
+
+        long noLogo = createQuotation(name, taxId, null);
+        long hasOwnLogo = createQuotation(name, taxId, ownLogo);
+        long otherTaxId = createQuotation(name, "0105559000026", null);
+
+        Map<String, Object> quoter = new HashMap<>();
+        quoter.put("name", name);
+        quoter.put("taxId", taxId);
+        quoter.put("logo", quoterLogo);
+        mvc.perform(post("/api/quoters").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(quoter)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.logoAppliedToQuotations").value(1));
+
+        mvc.perform(get("/api/quotations/{id}", noLogo)).andExpect(jsonPath("$.sellerLogo").value(quoterLogo));
+        mvc.perform(get("/api/quotations/{id}", hasOwnLogo)).andExpect(jsonPath("$.sellerLogo").value(ownLogo));
+        mvc.perform(get("/api/quotations/{id}", otherTaxId)).andExpect(jsonPath("$.sellerLogo").doesNotExist());
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void quotationWithoutLogo_takesTheSavedQuotersLogo() throws Exception {
+        // ฟอร์มไม่มีช่องโลโก้แล้ว — พิมพ์ชื่อผู้เสนอราคาเองก็ยังได้โลโก้จากเมนูผู้เสนอราคา
+        String name = "บริษัท โลโก้จากเมนู จำกัด";
+        String taxId = "0105559000034";
+        String quoterLogo = "data:image/png;base64,TUVOVQ==";
+        Map<String, Object> quoter = new HashMap<>();
+        quoter.put("name", name);
+        quoter.put("taxId", taxId);
+        quoter.put("logo", quoterLogo);
+        mvc.perform(post("/api/quoters").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(quoter)))
+                .andExpect(status().isCreated());
+
+        long withoutLogo = createQuotation(name, taxId, null);
+        mvc.perform(get("/api/quotations/{id}", withoutLogo)).andExpect(jsonPath("$.sellerLogo").value(quoterLogo));
+
+        // ใบที่ส่งโลโก้ของตัวเองมา (เช่น แก้ไขใบเดิม) ใช้โลโก้นั้น ไม่ถูกแทน
+        long ownLogo = createQuotation(name, taxId, TINY_PNG);
+        mvc.perform(get("/api/quotations/{id}", ownLogo)).andExpect(jsonPath("$.sellerLogo").value(TINY_PNG));
+    }
+
+    private long createQuotation(String sellerName, String sellerTaxId, String sellerLogo) throws Exception {
+        Map<String, Object> body = sampleQuotation("INCLUDED", List.of(item("งาน", 1, 100)));
+        body.put("sellerName", sellerName);
+        body.put("sellerTaxId", sellerTaxId);
+        body.put("sellerLogo", sellerLogo);
+        String created = mvc.perform(post("/api/quotations").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(body)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return om.readTree(created).get("id").asLong();
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void quoterLogo_mustBeAPngJpgOrWebpDataUrl() throws Exception {
+        Map<String, Object> quoter = new HashMap<>();
+        quoter.put("name", "ผู้เสนอราคา ทดสอบโลโก้");
+        quoter.put("logo", TINY_PNG);
+        mvc.perform(post("/api/quoters").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(quoter)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.logo").value(TINY_PNG));
+
+        // SVG ฝังสคริปต์ได้ จึงไม่รับ · ข้อความธรรมดาก็ไม่รับ
+        for (String bad : List.of("data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=", "https://example.com/logo.png")) {
+            quoter.put("logo", bad);
+            mvc.perform(post("/api/quoters").contentType(MediaType.APPLICATION_JSON).content(om.writeValueAsString(quoter)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("โลโก้ต้องเป็นรูป PNG, JPG หรือ WEBP"));
+        }
+    }
+
     @Test
     void create_withoutAuth_returns401() throws Exception {
         mvc.perform(post("/api/quotations")

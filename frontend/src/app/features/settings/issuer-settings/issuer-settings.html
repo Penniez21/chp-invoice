@@ -43,6 +43,11 @@
           </label>
         </div>
 
+        <div class="block">
+          <span class="lbl">สำนักงานใหญ่ / สาขา <span class="font-normal text-ink-soft">(แสดงบนใบกำกับภาษี)</span></span>
+          <app-branch-input formControlName="branch" />
+        </div>
+
         <label class="block">
           <span class="lbl">อีเมล</span>
           <input formControlName="email" class="inp" type="email" inputmode="email" />
@@ -113,7 +118,7 @@
                 <tr class="border-b border-line/60 align-middle">
                   <td class="px-5 py-3">
                     <p class="font-medium text-ink">{{ r.name }}</p>
-                    <p class="whitespace-nowrap text-xs text-ink-soft">เลขภาษี {{ r.taxId || '-' }}</p>
+                    <p class="whitespace-nowrap text-xs text-ink-soft">เลขภาษี {{ r.taxId || '-' }}{{ r.branch ? ' · ' + branchLabel(r.branch) : '' }}</p>
                   </td>
                   <td class="px-5 py-3 text-ink-soft">
                     <p class="whitespace-nowrap">{{ r.phone || '-' }}</p>

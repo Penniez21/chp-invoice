@@ -1,6 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { VatMode } from '../../shared/document/vat';
+import { PaymentMethod } from '../../shared/document/payment';
 
 /** ใบเสร็จรับเงิน — ช่องเดียวกับใบแจ้งหนี้ทุกอย่าง ต่างแค่เลขที่เป็น receiptNo และเก็บแยกตาราง */
 export interface ReceiptItemDto {
@@ -18,26 +20,37 @@ export interface ReceiptRequest {
   dueDate?: string | null;
   issuerName: string;
   issuerTaxId?: string | null;
+  /** รหัสสาขา 5 หลัก: 00000 = สำนักงานใหญ่ · null = ไม่ระบุ (ดู shared/document/branch.ts) */
+  issuerBranch?: string | null;
   issuerAddress?: string | null;
   issuerEmail?: string | null;
   issuerPhone?: string | null;
   recipientName: string;
   recipientTaxId?: string | null;
+  recipientBranch?: string | null;
   recipientAddress?: string | null;
   recipientPhone?: string | null;
   whtRate: number;
+  vatMode: VatMode;
+  vatRate: number;
+  /** ออกเป็น "ใบเสร็จรับเงิน/ใบกำกับภาษี" — ไม่มี VAT แล้ว backend บังคับเป็น false */
+  taxInvoice: boolean;
+  paymentMethod?: PaymentMethod | null;
+  chequeBank?: string | null;
+  chequeBranch?: string | null;
+  chequeNo?: string | null;
+  chequeDate?: string | null;  // ISO yyyy-MM-dd
   items: ReceiptItemDto[];
 }
 
 export interface ReceiptResponse extends ReceiptRequest {
   id: number;
-  subTotal: number;          // ยอดรวมย่อย (ราคารวม VAT แล้ว)
-  beforeVat: number;         // ราคาก่อนภาษีมูลค่าเพิ่ม
-  vatRate: number;
+  subTotal: number;          // ยอดรวมย่อย (ผลรวมรายการ)
+  beforeVat: number;         // ราคาก่อนภาษีมูลค่าเพิ่ม (ฐานคิดภาษีหัก ณ ที่จ่าย)
   vatAmount: number;
-  whtAmount: number;         // ภาษีหัก ณ ที่จ่าย คิดจากราคาก่อนภาษีมูลค่าเพิ่ม
-  netTotal: number;
-  grandTotal: number;
+  whtAmount: number;
+  netTotal: number;          // จำนวนเงินที่ชำระ = ทั้งหมด − ภาษีหัก
+  grandTotal: number;        // ทั้งหมด (รวม VAT)
   createdAt: string;
   items: ReceiptItemDto[];
 }

@@ -2,8 +2,10 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-/** วิธีคิดภาษีมูลค่าเพิ่ม: ราคารวม VAT แล้ว / บวก VAT เพิ่ม / ไม่มี VAT */
-export type VatMode = 'INCLUDED' | 'EXCLUDED' | 'NONE';
+import { VatMode } from '../../shared/document/vat';
+
+/** วิธีคิดภาษีมูลค่าเพิ่ม — ย้ายไปไว้ที่ shared/document/vat.ts เพราะใบแจ้งหนี้/ใบเสร็จใช้ด้วย */
+export type { VatMode };
 
 export interface QuotationItemDto {
   description: string;
@@ -26,6 +28,12 @@ export interface QuotationRequest {
   sellerAddress?: string | null;
   sellerPhone?: string | null;
   sellerEmail?: string | null;
+  /** โลโก้ผู้เสนอราคา (data URL) — หน้ารายการได้ null เสมอ เพื่อไม่ให้ข้อมูลหนัก */
+  sellerLogo?: string | null;
+  /** บุคคลผู้เสนอราคา (คนที่ดูแลใบนี้) — แสดงในกรอบเหลือง */
+  sellerContactName?: string | null;
+  sellerContactPhone?: string | null;
+  sellerContactEmail?: string | null;
   customerName: string;
   customerTaxId?: string | null;
   customerAddress?: string | null;

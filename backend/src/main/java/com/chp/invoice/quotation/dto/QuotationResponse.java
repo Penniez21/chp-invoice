@@ -21,6 +21,10 @@ public record QuotationResponse(
         String sellerAddress,
         String sellerPhone,
         String sellerEmail,
+        String sellerLogo,
+        String sellerContactName,
+        String sellerContactPhone,
+        String sellerContactEmail,
         String customerName,
         String customerTaxId,
         String customerAddress,
@@ -48,6 +52,15 @@ public record QuotationResponse(
     }
 
     public static QuotationResponse from(Quotation q) {
+        return from(q, true);
+    }
+
+    /** สำหรับหน้ารายการ — ไม่ส่งโลโก้ (data URL หลายสิบ KB ต่อใบ) เพราะตารางไม่ได้ใช้ */
+    public static QuotationResponse summary(Quotation q) {
+        return from(q, false);
+    }
+
+    private static QuotationResponse from(Quotation q, boolean withLogo) {
         List<Item> items = q.getItems().stream()
                 .map(it -> new Item(it.getDescription(), it.getDetails(), it.getQuantity(), it.getUnit(),
                         it.getUnitPrice(), it.getLineTotal()))
@@ -55,6 +68,8 @@ public record QuotationResponse(
         return new QuotationResponse(
                 q.getId(), q.getQuotationNo(), q.getIssueDate(), q.getCustomerNo(), q.getProject(), q.getLocation(),
                 q.getSellerName(), q.getSellerTaxId(), q.getSellerAddress(), q.getSellerPhone(), q.getSellerEmail(),
+                withLogo ? q.getSellerLogo() : null,
+                q.getSellerContactName(), q.getSellerContactPhone(), q.getSellerContactEmail(),
                 q.getCustomerName(), q.getCustomerTaxId(), q.getCustomerAddress(), q.getCustomerAttn(),
                 q.getCustomerPhone(), q.getCustomerEmail(),
                 q.getRemark(),

@@ -13,6 +13,9 @@ public record IssuerRequest(
         @Pattern(regexp = "^$|^\\d{13}$", message = "เลขประจำตัวผู้เสียภาษีต้องเป็นตัวเลข 13 หลัก")
         String taxId,
 
+        @Pattern(regexp = "^$|^\\d{5}$", message = "รหัสสาขาต้องเป็นตัวเลข 5 หลัก (สำนักงานใหญ่ = 00000)")
+        String branch,
+
         String address,
 
         @Email(message = "อีเมลไม่ถูกต้อง")

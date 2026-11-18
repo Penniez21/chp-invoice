@@ -9,7 +9,15 @@ import { Spinner } from '../../../shared/spinner/spinner';
 import { ToastService } from '../../../shared/toast/toast.service';
 import { DocumentPage } from '../../../shared/document/document-page';
 import { formatDateBE } from '../../../shared/date-format';
+import { tintToTone } from '../../../shared/document/tint';
 import { apiErrorMessage } from '../../../core/api-error';
+
+/**
+ * สีโลโก้บนเอกสาร — โทน slate เดียวกับตัวหนังสือ อยู่กึ่งกลางระหว่าง
+ * slate-800 ของ Tailwind v4 (#1d293d สีชื่อผู้เสนอ/ลูกค้าตัวหนา) กับ slate-700 (#314158 สีตัวหนังสือ)
+ * จึงยังเข้มกว่าตัวหนังสือเล็กน้อย แต่ไม่หนักเท่าชื่อตัวหนา (ผู้ใช้ขอให้อ่อนลงจาก slate-800)
+ */
+const LOGO_TONE = [39, 53, 75] as const;
 
 @Component({
   selector: 'app-quotation-report',
@@ -32,6 +40,8 @@ export class QuotationReport extends DocumentPage {
   ];
 
   protected readonly quotation = signal<QuotationResponse | null>(null);
+  /** โลโก้ที่ย้อมสีแล้ว — ไฟล์ที่เก็บไว้ไม่เปลี่ยน ย้อมเฉพาะตอนแสดงบนเอกสาร */
+  protected readonly logoSrc = signal<string | null>(null);
   protected readonly loading = signal(true);
   protected readonly errorMsg = signal<string | null>(null);
 
@@ -97,6 +107,10 @@ export class QuotationReport extends DocumentPage {
         address: q.sellerAddress ?? null,
         phone: q.sellerPhone ?? null,
         email: q.sellerEmail ?? null,
+        logo: q.sellerLogo ?? null,
+        contactName: q.sellerContactName ?? null,
+        contactPhone: q.sellerContactPhone ?? null,
+        contactEmail: q.sellerContactEmail ?? null,
       })
       .subscribe({
         next: (created) => {
@@ -149,6 +163,11 @@ export class QuotationReport extends DocumentPage {
       next: (q) => {
         this.quotation.set(q);
         this.loading.set(false);
+        if (q.sellerLogo) {
+          tintToTone(q.sellerLogo, LOGO_TONE)
+            .then((src) => this.logoSrc.set(src))
+            .catch(() => this.logoSrc.set(q.sellerLogo ?? null)); // ย้อมไม่ได้ก็ยังแสดงรูปเดิม
+        }
       },
       error: () => {
         this.loading.set(false);

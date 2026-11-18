@@ -31,9 +31,9 @@ public class QuoterController {
 
     @PostMapping
     public ResponseEntity<QuoterResponse> create(@Valid @RequestBody QuoterRequest req) {
-        Quoter saved = service.create(req);
+        QuoterService.SaveResult saved = service.create(req);
         return ResponseEntity
-                .created(URI.create("/api/quoters/" + saved.getId()))
+                .created(URI.create("/api/quoters/" + saved.quoter().getId()))
                 .body(QuoterResponse.from(saved));
     }
 

@@ -9,6 +9,7 @@ import { Stepper, Step } from '../../../shared/stepper/stepper';
 import { Spinner } from '../../../shared/spinner/spinner';
 import { ToastService } from '../../../shared/toast/toast.service';
 import { DocumentPage } from '../../../shared/document/document-page';
+import { PAYMENT_CHOICES, sharedAccountName, showsCheque, showsTransfer } from '../../../shared/document/payment';
 import { apiErrorMessage } from '../../../core/api-error';
 
 @Component({
@@ -61,6 +62,10 @@ export class InvoiceReport extends DocumentPage {
   protected readonly banks = signal<BankAccount[]>([]);
 
   protected readonly invoice = signal<InvoiceResponse | null>(null);
+  protected readonly paymentChoices = PAYMENT_CHOICES;
+  protected readonly sharedAccountName = sharedAccountName;
+  protected readonly showsCheque = showsCheque;
+  protected readonly showsTransfer = showsTransfer;
   protected readonly loading = signal(true);
   protected readonly errorMsg = signal<string | null>(null);
 
@@ -99,6 +104,7 @@ export class InvoiceReport extends DocumentPage {
       .create({
         name: inv.issuerName,
         taxId: inv.issuerTaxId ?? null,
+        branch: null, // ใบแจ้งหนี้ไม่มีสาขา (ใช้เฉพาะใบกำกับภาษีบนใบเสร็จ)
         address: inv.issuerAddress ?? null,
         email: inv.issuerEmail ?? null,
         phone: inv.issuerPhone ?? null,
@@ -125,6 +131,7 @@ export class InvoiceReport extends DocumentPage {
       .create({
         name: inv.recipientName,
         taxId: inv.recipientTaxId ?? null,
+        branch: null,
         address: inv.recipientAddress ?? null,
         phone: inv.recipientPhone ?? null,
       })

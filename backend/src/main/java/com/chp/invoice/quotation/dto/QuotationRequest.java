@@ -1,6 +1,7 @@
 package com.chp.invoice.quotation.dto;
 
 import com.chp.invoice.quotation.VatMode;
+import com.chp.invoice.web.ImageDataUrl;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
@@ -31,6 +32,10 @@ public record QuotationRequest(
         String sellerAddress,
         @Size(max = 30, message = "เบอร์โทรผู้เสนอราคายาวเกินไป") String sellerPhone,
         @Email(message = "อีเมลผู้เสนอราคาไม่ถูกต้อง") @Size(max = 120) String sellerEmail,
+        @ImageDataUrl String sellerLogo,
+        @Size(max = 200, message = "ชื่อผู้เสนอราคา (บุคคล) ยาวเกินไป") String sellerContactName,
+        @Size(max = 30, message = "เบอร์โทรผู้เสนอราคา (บุคคล) ยาวเกินไป") String sellerContactPhone,
+        @Email(message = "อีเมลผู้เสนอราคา (บุคคล) ไม่ถูกต้อง") @Size(max = 120) String sellerContactEmail,
 
         @NotBlank(message = "กรุณากรอกชื่อลูกค้า")
         @Size(max = 255, message = "ชื่อลูกค้ายาวเกินไป")

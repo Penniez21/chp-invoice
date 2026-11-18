@@ -3,6 +3,12 @@
     <span class="lbl">ที่อยู่ (บ้านเลขที่ / หมู่ / ซอย / ถนน)</span>
     <input class="inp" [value]="detail()" [disabled]="isDisabled()"
            (input)="onDetail($any($event.target).value)" />
+    <!-- ที่อยู่ทั้งหมด (รวมตำบล/อำเภอ/จังหวัด) ต้องไม่เกิน 2 บรรทัดบนเอกสาร — ดู addressLinesOnDocument -->
+    @if (docLines() > maxLines) {
+      <span class="err">ที่อยู่ยาวเกิน {{ maxLines }} บรรทัดบนเอกสาร (ตอนนี้ {{ docLines() }} บรรทัด) — ย่อให้สั้นลง เช่น ใช้ ซ. ถ. ม. หรือตัดชื่ออาคาร</span>
+    } @else if (docLines() > 0) {
+      <span class="mt-1 block text-xs text-ink-soft">บนเอกสาร {{ docLines() }}/{{ maxLines }} บรรทัด</span>
+    }
   </label>
 
   <div class="grid gap-3 sm:grid-cols-2">

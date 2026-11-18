@@ -1,6 +1,10 @@
 package com.chp.invoice.invoice.dto;
 
+import com.chp.invoice.document.PaymentMethod;
+import com.chp.invoice.quotation.VatMode;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -33,6 +37,19 @@ public record InvoiceRequest(
         String recipientPhone,
 
         @NotNull(message = "กรุณาระบุอัตราภาษีหัก ณ ที่จ่าย") BigDecimal whtRate,
+
+        // VAT 3 แบบเหมือนใบเสนอราคา — ไม่ส่งมา = ราคารวม VAT 7% (แบบเดียวที่มีก่อนเพิ่มตัวเลือกนี้)
+        VatMode vatMode,
+        @DecimalMin(value = "0", message = "อัตราภาษีมูลค่าเพิ่มต้องไม่ติดลบ")
+        @DecimalMax(value = "100", message = "อัตราภาษีมูลค่าเพิ่มต้องไม่เกิน 100%")
+        BigDecimal vatRate,
+
+        // ช่องทางการชำระ (ไม่บังคับ) — รายละเอียดเช็คเก็บเฉพาะเมื่อเลือกเช็ค
+        PaymentMethod paymentMethod,
+        @Size(max = 100, message = "ชื่อธนาคารยาวเกินไป") String chequeBank,
+        @Size(max = 100, message = "ชื่อสาขาธนาคารยาวเกินไป") String chequeBranch,
+        @Size(max = 50, message = "เลขที่เช็คยาวเกินไป") String chequeNo,
+        LocalDate chequeDate,
 
         @NotEmpty(message = "กรุณาเพิ่มรายการอย่างน้อย 1 รายการ")
         @Valid List<Item> items

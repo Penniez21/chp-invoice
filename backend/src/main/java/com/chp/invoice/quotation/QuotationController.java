@@ -22,7 +22,7 @@ public class QuotationController {
 
     @GetMapping
     public List<QuotationResponse> list() {
-        return service.findAll().stream().map(QuotationResponse::from).toList();
+        return service.findAll().stream().map(QuotationResponse::summary).toList();
     }
 
     /** เลขที่ถัดไปที่ยังไม่ซ้ำ — ใช้เติมหน้าสร้างใบเสนอราคาอัตโนมัติ (ต้องมาก่อน /{id}) */

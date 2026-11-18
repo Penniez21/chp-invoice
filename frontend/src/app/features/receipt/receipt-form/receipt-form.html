@@ -52,6 +52,18 @@
             <span class="lbl">ชื่อโครงการ</span>
             <input formControlName="project" class="inp" maxlength="255" placeholder="ไม่ระบุก็ได้ — ใช้ตั้งชื่อไฟล์ เช่น Receipt-PS-032-ชื่อโครงการ" />
           </label>
+          <!-- ใบกำกับภาษี: กรณีออกในนาม บจก. ต้องออกใบกำกับภาษีด้วย — ติ๊กให้เองตามชื่อผู้ออกจนกว่าผู้ใช้จะกดเอง -->
+          <div class="flex items-start gap-3 rounded-xl border border-line bg-surface p-3 sm:col-span-2">
+            <app-switch formControlName="taxInvoice" ariaLabel="ออกเป็นใบกำกับภาษีด้วย" (toggled)="onTaxInvoiceToggled()" />
+            <div class="min-w-0 text-sm">
+              <p class="font-medium text-ink">ออกเป็น "ใบเสร็จรับเงิน/ใบกำกับภาษี"</p>
+              @if (vatMode() === 'NONE') {
+                <p class="text-xs text-ink-soft">เลือก "ไม่มี VAT" อยู่ — ใบกำกับภาษีต้องแสดง VAT จึงออกไม่ได้</p>
+              } @else {
+                <p class="text-xs text-ink-soft">ติ๊กให้อัตโนมัติเมื่อผู้ออกเป็นบริษัท / บจก. / หจก. — ระบุสำนักงานใหญ่/สาขาของผู้ออกและผู้รับด้านล่างด้วย</p>
+              }
+            </div>
+          </div>
         </div>
       </section>
 
@@ -90,6 +102,10 @@
                 }
               }
             </label>
+            <div class="block">
+              <span class="lbl">สำนักงานใหญ่ / สาขา <span class="font-normal text-ink-soft">(แสดงบนใบกำกับภาษี)</span></span>
+              <app-branch-input formControlName="issuerBranch" />
+            </div>
             <app-address-picker formControlName="issuerAddress" />
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="block">
@@ -139,6 +155,10 @@
                 }
               }
             </label>
+            <div class="block">
+              <span class="lbl">สำนักงานใหญ่ / สาขา <span class="font-normal text-ink-soft">(แสดงบนใบกำกับภาษี)</span></span>
+              <app-branch-input formControlName="recipientBranch" />
+            </div>
             <app-address-picker formControlName="recipientAddress" />
             <!-- ใส่ในกริด 2 คอลัมน์ให้ความกว้างเท่าแถวอื่น ๆ ด้านบน (ไม่ยืดเต็มความกว้าง) -->
             <div class="grid gap-4 sm:grid-cols-2">
@@ -204,24 +224,105 @@
         </div>
       </section>
 
+      <!-- ช่องทางการชำระ — พิมพ์ลงเอกสารเป็นช่องติ๊ก (เลือกแล้วติ๊กให้) แสดงเฉพาะส่วนของช่องทางที่เลือก
+           เช็ค → ช่องกรอกรายละเอียดเช็ค · โอนเงิน → บัญชีที่จะพิมพ์บนเอกสาร (เลือกในเมนูบัญชีธนาคาร ไม่ต้องกรอกเพิ่ม) -->
+      <section class="card animate-in p-6">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-primary-soft text-primary-dark">💳</span>
+            <h2 class="text-base font-semibold text-ink">ช่องทางการชำระ</h2>
+          </div>
+          <div class="flex items-center gap-1 rounded-full border border-line bg-surface p-1" role="radiogroup" aria-label="ช่องทางการชำระ">
+            @for (p of paymentMethods; track p.value) {
+              <button type="button" role="radio" [attr.aria-checked]="paymentMethod() === p.value"
+                      (click)="setPaymentMethod(p.value)"
+                      class="rounded-full px-3 py-1 text-xs font-medium transition-all"
+                      [class]="paymentMethod() === p.value ? 'bg-primary text-white shadow' : 'text-ink-soft hover:text-ink'">
+                {{ p.label }}
+              </button>
+            }
+          </div>
+        </div>
+        @if (paymentMethod() === 'CHEQUE') {
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="block">
+              <span class="lbl">ธนาคาร</span>
+              <input formControlName="chequeBank" class="inp" maxlength="100" placeholder="เช่น กสิกรไทย" />
+            </label>
+            <label class="block">
+              <span class="lbl">สาขา</span>
+              <input formControlName="chequeBranch" class="inp" maxlength="100" />
+            </label>
+            <label class="block">
+              <span class="lbl">เลขที่เช็ค</span>
+              <input formControlName="chequeNo" class="inp" maxlength="50" />
+            </label>
+            <div class="block">
+              <span class="lbl">วันที่เช็ค</span>
+              <app-date-picker formControlName="chequeDate" ariaLabel="วันที่เช็ค" placeholder="ไม่ระบุ" />
+            </div>
+          </div>
+        } @else if (paymentMethod() === 'TRANSFER') {
+          <app-transfer-accounts [issuerName]="form.controls.issuerName.value" />
+        } @else {
+          <p class="text-sm text-ink-soft">
+            {{ paymentHint(paymentMethod()) }}
+          </p>
+        }
+      </section>
+
       <!-- สรุปยอด -->
       <section class="card animate-in overflow-hidden">
         <!-- มือถือ: ชื่อแถว + ช่อง % อยู่บรรทัดเดียวเสมอ ยอดเงินไม่ตัดคำ ถ้าจอแคบจริง ๆ ยอดเงินลงบรรทัดใหม่ชิดขวาทั้งก้อน
              (เดิม "หัก ภาษี ณ ที่จ่าย" แตกเป็น 2 บรรทัด และ "− ฿ 0.00" ถูกตัดกลางคำ) -->
-        <div class="p-4 sm:p-6">
+        <div class="space-y-5 p-4 sm:p-6">
+          <!-- VAT 3 แบบเหมือนใบเสนอราคา -->
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <span class="text-sm font-medium text-ink">ภาษีมูลค่าเพิ่ม</span>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="flex items-center gap-1 rounded-full border border-line bg-surface p-1" role="radiogroup" aria-label="วิธีคิดภาษีมูลค่าเพิ่ม">
+                @for (m of vatModes; track m.mode) {
+                  <button type="button" role="radio" [attr.aria-checked]="vatMode() === m.mode"
+                          (click)="setVatMode(m.mode)"
+                          class="rounded-full px-3 py-1 text-xs font-medium transition-all"
+                          [class]="vatMode() === m.mode ? 'bg-primary text-white shadow' : 'text-ink-soft hover:text-ink'">
+                    {{ m.label }}
+                  </button>
+                }
+              </div>
+              @if (vatMode() !== 'NONE') {
+                <span class="flex items-center gap-1 whitespace-nowrap text-sm text-ink-soft">
+                  อัตรา
+                  <input type="number" min="0" max="100" step="0.5" formControlName="vatRate"
+                         class="w-14 rounded-lg border border-line bg-surface px-2 py-1 text-right text-ink" /> %
+                </span>
+              }
+            </div>
+          </div>
+
           <div class="ml-auto max-w-sm space-y-2.5 text-sm">
             <div class="flex justify-between gap-3">
               <span class="text-ink-soft">ยอดรวมย่อย</span>
               <span class="whitespace-nowrap font-semibold text-ink">฿ {{ formatMoney(subTotal()) }}</span>
             </div>
-            <div class="flex justify-between gap-3">
-              <span class="text-ink-soft">ราคาก่อนภาษีมูลค่าเพิ่ม</span>
-              <span class="whitespace-nowrap font-semibold text-ink">฿ {{ formatMoney(beforeVat()) }}</span>
-            </div>
-            <div class="flex justify-between gap-3">
-              <span class="text-ink-soft">ภาษีมูลค่าเพิ่ม {{ vatRate }}% (รวมอยู่ในราคาแล้ว)</span>
-              <span class="whitespace-nowrap font-semibold text-ink">฿ {{ formatMoney(vatAmount()) }}</span>
-            </div>
+            @if (vatMode() === 'INCLUDED') {
+              <div class="flex justify-between gap-3">
+                <span class="text-ink-soft">ราคาก่อนภาษีมูลค่าเพิ่ม</span>
+                <span class="whitespace-nowrap font-semibold text-ink">฿ {{ formatMoney(beforeVat()) }}</span>
+              </div>
+            }
+            @if (vatMode() !== 'NONE') {
+              <div class="flex justify-between gap-3">
+                <span class="text-ink-soft">ภาษีมูลค่าเพิ่ม {{ form.controls.vatRate.value }}%{{ vatMode() === 'INCLUDED' ? ' (รวมอยู่ในราคาแล้ว)' : '' }}</span>
+                <span class="whitespace-nowrap font-semibold text-ink">{{ vatMode() === 'EXCLUDED' ? '+ ' : '' }}฿ {{ formatMoney(vatAmount()) }}</span>
+              </div>
+            }
+            @if (vatMode() === 'EXCLUDED') {
+              <div class="flex justify-between gap-3 border-t border-line pt-2.5">
+                <span class="text-ink-soft">รวมทั้งสิ้น</span>
+                <span class="whitespace-nowrap font-semibold text-ink">฿ {{ formatMoney(grandTotal()) }}</span>
+              </div>
+            }
             <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
               <span class="flex items-center gap-2 whitespace-nowrap text-ink-soft">
                 หัก ภาษี ณ ที่จ่าย

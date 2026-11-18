@@ -1,5 +1,8 @@
 package com.chp.invoice.receipt;
 
+import com.chp.invoice.document.DocumentTotals;
+import com.chp.invoice.document.PaymentMethod;
+import com.chp.invoice.quotation.VatMode;
 import com.chp.invoice.receipt.dto.ReceiptNextNumbersResponse;
 import com.chp.invoice.receipt.dto.ReceiptRequest;
 import org.springframework.stereotype.Service;
@@ -18,10 +21,9 @@ import java.util.regex.Pattern;
 public class ReceiptService {
 
     private static final int MONEY_SCALE = 2;
-    private static final BigDecimal HUNDRED = new BigDecimal("100");
 
-    /** ภาษีมูลค่าเพิ่ม 7% — ราคาที่กรอกในรายการถือว่า "รวม VAT แล้ว" จึงถอดออกมาเป็นราคาก่อนภาษีมูลค่าเพิ่ม */
-    private static final BigDecimal VAT_RATE = new BigDecimal("7.00");
+    /** อัตรา VAT เมื่อ request ไม่ได้ระบุมา */
+    private static final BigDecimal DEFAULT_VAT_RATE = new BigDecimal("7.00");
 
     /** รูปแบบเลขที่ใบเสร็จ: PS- + เลขรัน 3 หลัก (PS-032, PS-033, …) */
     private static final String RECEIPT_PREFIX = "PS-";
@@ -152,12 +154,14 @@ public class ReceiptService {
 
         r.setIssuerName(req.issuerName());
         r.setIssuerTaxId(req.issuerTaxId());
+        r.setIssuerBranch(trimOrNull(req.issuerBranch()));
         r.setIssuerAddress(req.issuerAddress());
         r.setIssuerEmail(req.issuerEmail());
         r.setIssuerPhone(req.issuerPhone());
 
         r.setRecipientName(req.recipientName());
         r.setRecipientTaxId(req.recipientTaxId());
+        r.setRecipientBranch(trimOrNull(req.recipientBranch()));
         r.setRecipientAddress(req.recipientAddress());
         r.setRecipientPhone(req.recipientPhone());
 
@@ -180,26 +184,32 @@ public class ReceiptService {
         }
         subTotal = subTotal.setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 
-        // ราคาที่กรอกรวม VAT แล้ว: ถอดราคาก่อน VAT = ยอดรวมย่อย × 100 / (100 + อัตรา) แล้ว VAT = ส่วนต่าง
-        // (ใช้ส่วนต่างแทนการคูณอัตราตรง ๆ เพื่อให้ ก่อน VAT + VAT = ยอดรวมย่อย พอดีทุกสตางค์ เหมือนใบเสนอราคา)
-        BigDecimal beforeVat = subTotal.multiply(HUNDRED)
-                .divide(HUNDRED.add(VAT_RATE), MONEY_SCALE, RoundingMode.HALF_UP);
-        BigDecimal vatAmount = subTotal.subtract(beforeVat);
-
-        // ภาษีหัก ณ ที่จ่ายคิดจาก "ราคาก่อนภาษีมูลค่าเพิ่ม" แต่หักออกจากยอดรวมที่รวม VAT แล้ว
+        // VAT 3 แบบ + ภาษีหัก ณ ที่จ่ายจากราคาก่อน VAT — กติกาเดียวกับใบแจ้งหนี้ ดู DocumentTotals
+        VatMode vatMode = req.vatMode() == null ? VatMode.INCLUDED : req.vatMode();
+        BigDecimal vatRate = req.vatRate() == null ? DEFAULT_VAT_RATE : req.vatRate();
         BigDecimal whtRate = nz(req.whtRate());
-        BigDecimal whtAmount = beforeVat.multiply(whtRate)
-                .divide(HUNDRED, MONEY_SCALE, RoundingMode.HALF_UP);
-        BigDecimal netTotal = subTotal.subtract(whtAmount).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+        DocumentTotals totals = DocumentTotals.compute(subTotal, vatMode, vatRate, whtRate);
 
         r.setSubTotal(subTotal);
-        r.setBeforeVat(beforeVat);
-        r.setVatRate(VAT_RATE);
-        r.setVatAmount(vatAmount);
+        r.setVatMode(vatMode);
+        r.setVatRate(vatRate);
+        r.setBeforeVat(totals.beforeVat());
+        r.setVatAmount(totals.vatAmount());
+        r.setGrandTotal(totals.grandTotal());
         r.setWhtRate(whtRate);
-        r.setWhtAmount(whtAmount);
-        r.setNetTotal(netTotal);
-        r.setGrandTotal(subTotal); // ยอดรวมทั้งหมด = ยอดรวมย่อย (ราคารวม VAT อยู่แล้ว)
+        r.setWhtAmount(totals.whtAmount());
+        r.setNetTotal(totals.netTotal());
+
+        // ใบกำกับภาษีต้องแสดง VAT — เลือก "ไม่มี VAT" แล้วออกเป็นใบกำกับภาษีไม่ได้
+        r.setTaxInvoice(Boolean.TRUE.equals(req.taxInvoice()) && vatMode != VatMode.NONE);
+
+        // รายละเอียดเช็คเก็บเฉพาะเมื่อเลือกเช็ค — เปลี่ยนเป็นเงินสดแล้วไม่ให้ค้างข้อมูลเช็คเก่า
+        boolean cheque = req.paymentMethod() == PaymentMethod.CHEQUE;
+        r.setPaymentMethod(req.paymentMethod());
+        r.setChequeBank(cheque ? trimOrNull(req.chequeBank()) : null);
+        r.setChequeBranch(cheque ? trimOrNull(req.chequeBranch()) : null);
+        r.setChequeNo(cheque ? trimOrNull(req.chequeNo()) : null);
+        r.setChequeDate(cheque ? req.chequeDate() : null);
     }
 
     private static BigDecimal nz(BigDecimal v) {

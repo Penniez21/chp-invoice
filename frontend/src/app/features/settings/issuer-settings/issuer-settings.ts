@@ -10,10 +10,12 @@ import { apiErrorMessage } from '../../../core/api-error';
 import { Issuer, IssuerService } from '../issuer.service';
 import { Pagination } from '../../../shared/pagination/pagination';
 import { createPaginator } from '../../../shared/pagination/paginator';
+import { BranchInput } from '../../../shared/branch-input/branch-input';
+import { branchLabel } from '../../../shared/document/branch';
 
 @Component({
   selector: 'app-issuer-settings',
-  imports: [ReactiveFormsModule, Spinner, AddressPicker, DigitsOnly, Pagination],
+  imports: [ReactiveFormsModule, Spinner, AddressPicker, DigitsOnly, Pagination, BranchInput],
   templateUrl: './issuer-settings.html',
 })
 export class IssuerSettings {
@@ -53,10 +55,13 @@ export class IssuerSettings {
   protected readonly form = this.fb.nonNullable.group({
     name: ['', Validators.required],
     taxId: ['', [thaiTaxId]],
+    branch: [null as string | null],
     address: [''],
     email: ['', [Validators.email]],
     phone: ['', [thaiPhone]],
   });
+
+  protected readonly branchLabel = branchLabel;
 
   constructor() {
     queueMicrotask(() => this.load());
@@ -78,7 +83,7 @@ export class IssuerSettings {
 
   protected openCreate(): void {
     this.editingId.set(null);
-    this.form.reset({ name: '', taxId: '', address: '', email: '', phone: '' });
+    this.form.reset({ name: '', taxId: '', branch: null, address: '', email: '', phone: '' });
     this.formOpen.set(true);
   }
 
@@ -87,6 +92,7 @@ export class IssuerSettings {
     this.form.reset({
       name: r.name,
       taxId: r.taxId ?? '',
+      branch: r.branch ?? null,
       address: r.address ?? '',
       email: r.email ?? '',
       phone: r.phone ?? '',
@@ -102,13 +108,14 @@ export class IssuerSettings {
   protected save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.toast.error('ข้อมูลยังไม่ถูกต้อง', 'ตรวจชื่อผู้ออก เลขผู้เสียภาษี อีเมล และเบอร์โทรอีกครั้ง');
+      this.toast.error('ข้อมูลยังไม่ถูกต้อง', 'ตรวจชื่อผู้ออก เลขผู้เสียภาษี อีเมล เบอร์โทร และความยาวที่อยู่อีกครั้ง');
       return;
     }
     const raw = this.form.getRawValue();
     const payload = {
       name: raw.name,
       taxId: raw.taxId || null,
+      branch: raw.branch || null,
       address: raw.address || null,
       email: raw.email || null,
       phone: raw.phone || null,

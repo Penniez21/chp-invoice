@@ -33,6 +33,20 @@ public class Quoter {
     @Column(length = 120)
     private String email;
 
+    /** โลโก้แบบ data URL (data:image/png;base64,...) — ไม่บังคับ แสดงที่หัวใบเสนอราคา */
+    @Column(columnDefinition = "TEXT")
+    private String logo;
+
+    // ----- บุคคลผู้เสนอราคา (คนที่ดูแลใบเสนอราคา) — ไม่บังคับ แสดงในกรอบเหลืองของใบเสนอราคา -----
+    @Column(name = "contact_name", length = 200)
+    private String contactName;
+
+    @Column(name = "contact_phone", length = 30)
+    private String contactPhone;
+
+    @Column(name = "contact_email", length = 120)
+    private String contactEmail;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -63,6 +77,14 @@ public class Quoter {
     public void setPhone(String phone) { this.phone = phone; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+    public String getLogo() { return logo; }
+    public void setLogo(String logo) { this.logo = logo; }
+    public String getContactName() { return contactName; }
+    public void setContactName(String contactName) { this.contactName = contactName; }
+    public String getContactPhone() { return contactPhone; }
+    public void setContactPhone(String contactPhone) { this.contactPhone = contactPhone; }
+    public String getContactEmail() { return contactEmail; }
+    public void setContactEmail(String contactEmail) { this.contactEmail = contactEmail; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

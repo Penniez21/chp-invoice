@@ -98,6 +98,28 @@
               @if (form.controls.sellerPhone.touched && form.controls.sellerPhone.invalid) { <span class="err">เบอร์โทรต้องเป็นตัวเลข 10 หลัก</span> }
             </label>
           </div>
+          <!-- บุคคลผู้เสนอราคา — แสดงในกรอบเหลืองของรายงาน (คนละอย่างกับข้อมูลบริษัทด้านบน) -->
+          <fieldset class="space-y-4 rounded-xl border border-line p-4">
+            <legend class="px-1.5 text-sm font-semibold text-ink">
+              ผู้เสนอราคา (บุคคล) <span class="font-normal text-ink-soft">— คนที่ดูแลใบนี้ ไม่บังคับ</span>
+            </legend>
+            <label class="block">
+              <span class="lbl">ชื่อ</span>
+              <input formControlName="sellerContactName" class="inp" placeholder="เช่น นายสมชาย ใจดี" />
+            </label>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="block">
+                <span class="lbl">เบอร์โทร (10 หลัก)</span>
+                <input formControlName="sellerContactPhone" class="inp" appDigitsOnly="10" inputmode="numeric" />
+                @if (form.controls.sellerContactPhone.touched && form.controls.sellerContactPhone.invalid) { <span class="err">เบอร์โทรต้องเป็นตัวเลข 10 หลัก</span> }
+              </label>
+              <label class="block">
+                <span class="lbl">อีเมล</span>
+                <input formControlName="sellerContactEmail" class="inp" />
+                @if (form.controls.sellerContactEmail.touched && form.controls.sellerContactEmail.invalid) { <span class="err">อีเมลไม่ถูกต้อง</span> }
+              </label>
+            </div>
+          </fieldset>
         </div>
       </section>
 
